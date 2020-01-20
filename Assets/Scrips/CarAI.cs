@@ -10,8 +10,12 @@ namespace UnityStandardAssets.Vehicles.Car
     public class CarAI : MonoBehaviour
     {
         private CarController m_Car; // the car controller we want to use
+
         public GameObject terrain_manager_game_object;
         TerrainManager terrain_manager;
+
+        private List<Vector3> my_path;
+
         private void Start()
         {
             // get the car controller
@@ -22,19 +26,26 @@ namespace UnityStandardAssets.Vehicles.Car
             // Replace the code below that makes a random path
             // ...
 
+
             Vector3 start_pos = terrain_manager.myInfo.start_pos;
             Vector3 goal_pos = terrain_manager.myInfo.goal_pos;
 
+            /*
             List<Vector3> my_path = new List<Vector3>();
-			RRT = new RRT();
-            my_path = RRT.run();
 
-            //for (int i = 0; i < 3; i++)
-            //{
-            //    Vector3 waypoint = start_pos + new Vector3(UnityEngine.Random.Range(-50.0f, 50.0f), 0, UnityEngine.Random.Range(-30.0f, 30.0f));
-            //    my_path.Add(waypoint);
-            //}
-            //my_path.Add(goal_pos);
+            my_path.Add(start_pos);
+
+            for (int i = 0; i < 100; i++)
+            {
+                Vector3 waypoint = start_pos + new Vector3(UnityEngine.Random.Range(-50.0f, 50.0f), 0, UnityEngine.Random.Range(-30.0f, 30.0f));
+                my_path.Add(waypoint);
+            }
+            my_path.Add(goal_pos);
+
+            */
+
+            RRT rrt = new RRT(terrain_manager_game_object);
+            my_path = rrt.testPath();
 
 
             // Plot your path to see if it makes sense
@@ -45,11 +56,17 @@ namespace UnityStandardAssets.Vehicles.Car
                 Debug.DrawLine(old_wp, wp, Color.red, 100f);
                 old_wp = wp;
             }
+
+
         }
+
+
         private void FixedUpdate()
         {
             // Execute your path here
             // ...
+
+
 
             // this is how you access information about the terrain
             int i = terrain_manager.myInfo.get_i_index(transform.position.x);
@@ -61,8 +78,15 @@ namespace UnityStandardAssets.Vehicles.Car
 
 
             // this is how you control the car
-			// m_Car.Move(steering:[-1(left), 0(no), 1(right)], accel: [0(no), 1(yes)],footbrake: [-1(backward), 0(forward)], handbrake:[0(off), 1(on)]);
-            m_Car.Move(0f, 1f, -1f, 0f);
+            /*
+            Move(1, 2, 3, 4)
+                1: steering (-1 = left, 0 = nothing, 1 = right)
+                2: gas pedal
+                3: break (-1 = backwards, 0 = nothing)
+                4: ? handbreak ?
+            */
+            m_Car.Move(0f, 0f, 0f, 0f);
+
         }
     }
 }
