@@ -1,0 +1,10 @@
+#1 - Gera Graph
+	a) Finna borðið og skipta því upp.
+	b) CSO
+		- Finna lengd bíls
+		- Minnka collision free zone um helming af lengd bíls
+	c) Gera kostnað á milli hvers hluta.
+	d) Setja inn byrjunar og endapunkt?
+#2 - Gera Tré
+	a) Byrja á byrjunarreit
+	b) 
