@@ -16,8 +16,9 @@ namespace UnityStandardAssets.Vehicles.Car
         TerrainManager terrain_manager;
 
         private List<Vector3> my_path;
+        private Vector3 car_pos;
         private const double max_steer_angle = (25f / 360f) * 2f * Math.PI;
-        private float angle = 0;
+        private float steering_angle = 0;
         private double theta = Math.PI / 2f;
         private double v = 0;
         private double t;
@@ -25,6 +26,8 @@ namespace UnityStandardAssets.Vehicles.Car
         private double phi = 0;
         private double x = 0;
         private double z = 0;
+        // stores the index of the next node the car should head toward
+        private int next;
 
         private void Start()
         {
@@ -34,17 +37,20 @@ namespace UnityStandardAssets.Vehicles.Car
 
             Vector3 start_pos = terrain_manager.myInfo.start_pos;
             Vector3 goal_pos = terrain_manager.myInfo.goal_pos;
+            car_pos = start_pos;
 
+            // get test path for terrain C
             RRT rrt = new RRT(terrain_manager_game_object);
-            rrt.test(m_Car);
             my_path = rrt.testPath();
 
             // initialize the starting position for the model
             x = start_pos[0];
             z = start_pos[2];
 
-            // Plot your path to see if it makes sense
-            // Note that path can only be seen in "Scene" window, not "Game" window
+            // set the next node in the path to be the one after the start node
+            next = 1;
+
+            // plot the path in the scene window
             Vector3 old_wp = start_pos;
             foreach (var wp in my_path)
             {
@@ -55,66 +61,157 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private void FixedUpdate()
         {
-            //TODO: determine the angle of the steering based on where the car sohuld go before applying the update on the model
-            //      implement a variable acceleration, depending on the path
-            //      -> both should be doable by looking at the distance to the next node and then act according to the angle between 
-            //         the car's current theta and the vector leading to the node after the next one
+            // stop driving once the goal node is reached
+            if (next >= my_path.Count - 2)
+            {
+                m_Car.Move(0f, 0f, 0f, 0f);
+                return;
+            }
 
-            // the time between the fixed updates. used to scale the velocity, given in m/s
+            // update car position
+            car_pos = new Vector3(transform.position.x, 0, transform.position.z);
+
+            // if the car is within a certain distance of the next node, increase the next index by one
+            // the distance is squared (e.g. 25 = 5m distance from car to point)
+            if (Math.Pow(car_pos[0] - my_path[next][0], 2) + Math.Pow(car_pos[2] - my_path[next][2], 2) < 36)
+            {
+                next++;
+            }
+
+            // the time between the fixed updates
             t = Time.fixedDeltaTime;
-
-            // angle in percentage
-            angle = -0.2f;
 
             // velocity in m/s
             v = m_Car.CurrentSpeed / 2.23693629f;
 
+            // get the speed and steering angle which leads the car towards the next point
+            double[] result = calculateDesiredConfiguration();
+
+            // steering angle [-1 - 1]
+            steering_angle = (float)result[1];
+
             // angle of wheels in radians
-            phi = -angle * max_steer_angle;
+            phi = -steering_angle * max_steer_angle;
 
             // angle of car in radians
-            theta += ((v * t) / L) * Math.Tan(phi);
+            theta += (((v * t) / L) * Math.Tan(phi)) % (2 * Math.PI);
 
+            /*
             // update the predicted position
             x += v * Math.Cos(theta) * t;
             z += v * Math.Sin(theta) * t;
-
-            /*
-            // this is how you access information about the terrain
-            int i = terrain_manager.myInfo.get_i_index(transform.position.x);
-            int j = terrain_manager.myInfo.get_j_index(transform.position.z);
-            float grid_center_x = terrain_manager.myInfo.get_x_pos(i);
-            float grid_center_z = terrain_manager.myInfo.get_z_pos(j);
-
-            UnityEngine.Debug.DrawLine(transform.position, new Vector3(grid_center_x, 0f, grid_center_z));
             */
 
             // used to check the accuracy of the model
-            UnityEngine.Debug.Log(transform.position.x + " | " + transform.position.z);
-            UnityEngine.Debug.Log(x + " # " + z);
-            
-            m_Car.Move(angle, 1f, 0f, 0f);
+            //UnityEngine.Debug.Log(transform.position.x + " | " + transform.position.z);
+            //UnityEngine.Debug.Log(x + " # " + z);
+
+            // accelerate or break, depending on the desired velocity
+            //TODO: improve the dynamics of the speed
+            float gas_pedal = 0;
+            float break_pedal = 0;
+            if (v < result[0])
+            {
+                gas_pedal = 0.5f;
+                break_pedal = 0f;
+            }
+            else if (v > result[0])
+            {
+                gas_pedal = 0f;
+                break_pedal = -0.5f;
+            }
 
             // this is how you control the car
             /*
             Move(1, 2, 3, 4)
                 1: steering (-1 = left, 0 = nothing, 1 = right)
-                2: gas pedal
+                2: gas pedal (0 - 1)
                 3: break (-1 = backwards, 0 = nothing)
-                4: ? handbreak ?
+                4: handbreak
             */
+            m_Car.Move(steering_angle, gas_pedal, break_pedal, 0f);
         }
 
-        private Vector3 closest(Vector3 current)
+        /**
+        returns a steering angle and speed, depending on the angle between the two points and the direction of the next point
+        */
+        private double[] calculateDesiredConfiguration()
         {
-            double best = Double.MaxValue;
-            Vector3 result = new Vector3();
-            foreach (Vector3 v in my_path)
+            // get the last, next and the one after the next point
+            Vector3 point1 = my_path[next - 1];
+            Vector3 point2 = my_path[next];
+            Vector3 point3 = my_path[next + 1];
+
+            // build the two vectors between the points and one between the car and the next point
+            Vector3 vector1 = point2 - point1;
+            Vector3 vector2 = point3 - point2;
+            Vector3 car_next = point2 - car_pos;
+
+            // get the angle between vector 1 & 2 in degrees
+            double angle = Vector3.Angle(vector1, vector2);
+            double[] result = new double[2];
+
+            // speed (needs improvement)
+            if (angle > 81)
             {
-                if (Vector3.Distance(current, v) < best)
+                result[0] = 0.1;
+            }
+            else
+            {
+                result[0] = 100 - ((angle * 100) / 90);
+            }
+
+            // only apply model dynamics when driving
+            if (v > 0)
+            {
+                // get the angle of the car - next vector
+                // Atan() returns the smallest angle (from -pi/2 to pi/2)
+                double vectorAngle = Math.Atan(car_next[2] / car_next[0]);
+                // TODO: test all edge cases
+                if (
+                    // if car_next lies in the second quadrant
+                    (car_next[0] < 0 && car_next[2] > 0 && vectorAngle < 0)
+                    // if car_next lies on the x axis and points to the left
+                    || (car_next[0] < 0 && vectorAngle == 0)
+                    // if car_next lies in the third quadrant
+                    || (car_next[0] < 0 && car_next[2] < 0)
+                )
                 {
-                    result = v;
+                    vectorAngle += Math.PI;
                 }
+                else if (
+                  // if car_next lies in the fourth quadrant
+                  car_next[0] > 0 && car_next[2] < 0
+              )
+                {
+                    vectorAngle += 2 * Math.PI;
+                }
+
+                // calculates the steering angle (phi) which results in a minimal difference between theta and the vector angle
+                // increase the number of iterations in order to get a more precise result
+                double phi_min = 0;
+                double best = Double.MaxValue;
+                double iter = -1f * max_steer_angle;
+                double x = 0;
+                int number_of_iterations = 20;
+
+                for (float i = -1; i <= 1; i += 2f / number_of_iterations)
+                {
+                    x = Math.Abs(theta + (((v * t) / L) * Math.Tan(iter)) - vectorAngle);
+
+                    if (x < best)
+                    {
+                        best = x;
+                        phi_min = i;
+                    }
+
+                    iter += (1f * 2 * max_steer_angle) / (number_of_iterations - 1);
+                }
+                result[1] = -phi_min;
+            }
+            else
+            {
+                result[1] = 0f;
             }
 
             return result;
