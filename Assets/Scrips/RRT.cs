@@ -76,7 +76,7 @@ namespace UnityStandardAssets.Vehicles.Car
             x_free = new int[lenX, lenZ];
             int n = lenX / N;
             int m = lenZ / M;
-            int buffer = 5;
+            int buffer = 3;
 			int x_length = (int)(x_max-x_min);
 			int z_length = (int)(z_max-z_min);
             for (int i = 0; i < lenX; i++)
@@ -94,23 +94,19 @@ namespace UnityStandardAssets.Vehicles.Car
                     {
 						x_free[i, j] = 0;
                         x_free[i, j] = 0;
-						int bufferXPlus = buffer+1;
+						int bufferXPlus = buffer;
 						int bufferXMinus = -buffer;
-						int bufferZPlus = buffer+1;
+						int bufferZPlus = buffer;
 						int bufferZMinus = -buffer;
-						if(bufferXMinus+i < 0) { bufferXMinus = -i; }
-						if(bufferXPlus+i > x_length-1) { bufferXPlus = x_length-i; }
-						UnityEngine.Debug.Log(" if " + bufferZMinus + " + " + j + " < " + 0 + " bufferZMinus = " + buffer + " - " + j);
-						if(bufferZMinus+j < 0) { bufferZMinus = buffer-j+1; }
-						if(bufferZPlus+j > z_length-1) { bufferZPlus = z_length-j; }
-                        for (int k = bufferXMinus-i; k < bufferXPlus+i; k++)
+						if(bufferXMinus+i < 0) { bufferXMinus = 0; }
+						if(bufferXPlus+i > x_length-1) { bufferXPlus = 0; }
+						if(bufferZMinus+j < 0) { bufferZMinus = 0; }
+						if(bufferZPlus+j > z_length-1) { bufferZPlus = 0; }
+                        for (int k = bufferXMinus; k <= bufferXPlus; k++)
                         {
-							UnityEngine.Debug.Log("K" + k);
-                            for (int l = bufferZMinus-j; l < bufferZPlus+j; l++)
+                            for (int l = bufferZMinus; l <= bufferZPlus; l++)
                             {
-								UnityEngine.Debug.Log("L " + l);
-                                x_free[k, l] = 0;
-                                x_free[k, l] = 0;
+                                x_free[k+i, l+j] = 0;
                             }
                         }
                     }
@@ -144,7 +140,7 @@ namespace UnityStandardAssets.Vehicles.Car
 					UnityEngine.Debug.Log("Sampling point");
 					xInt = r.Next(0, (int)(x_max - x_min-1));
 					zInt = r.Next(0, (int)(z_max - z_min-1));
-					if (x_free[zInt, xInt] == 1)
+					if (x_free[xInt, zInt] == 1)
 					{
 						notDone = false;
 					}
@@ -190,7 +186,8 @@ namespace UnityStandardAssets.Vehicles.Car
 			} else {
 				zAng = 1;
 			}
-			int length = (int)Mathf.Max(Mathf.Abs(zDist), Mathf.Max(xDist));
+			int length = (int)Mathf.Max(Mathf.Abs(zDist), Mathf.Abs(xDist));
+
 			for(int i = 0; i < length; i++) {
 				int xCord = (int)(nearest.pos[0] - x_min - 1 + xAng*i);
 				int zCord = (int)(nearest.pos[2] - z_min - 1 + i*zAng);
@@ -263,7 +260,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
 			while(notConverged) {
 				iter++;
-				UnityEngine.Debug.Log("-------------------------Iteration:" + iter);
+				UnityEngine.Debug.Log("-----------------------------------------------------------------------------------------------------------------------------Iteration:" + iter);
 				Vector3 x_rand = SampleFree(iter);
 				UnityEngine.Debug.Log("Sampled point        X: " + x_rand[0] + " Z: " + x_rand[2]);
 
@@ -299,15 +296,17 @@ namespace UnityStandardAssets.Vehicles.Car
 			List<Vector3> myPath = new List<Vector3>();
 
 			Node node = x_last;
-			my_path.Add(node.pos);
+			UnityEngine.Debug.Log("Node  pos " + node.pos);
+			myPath.Add(node.pos);
 			UnityEngine.Debug.Log("Node parents pos " + node.parent.pos);
 			while(node.parent != null) {
 				UnityEngine.Debug.Log("Creating path");
 				node = node.parent;
 				myPath.Insert(0, node.pos);
 			}
-			for(int i = 0; i < my_path.Count; i++) {
-				UnityEngine.Debug.Log("point " + i + " = " + my_path[i][0] + " " + my_path[i][2]);
+			printXFree();
+			for(int i = 0; i < myPath.Count; i++) {
+				UnityEngine.Debug.Log("point " + i + " = " + myPath[i][0] + " " + myPath[i][2]);
 			}
 			return myPath;
         }
