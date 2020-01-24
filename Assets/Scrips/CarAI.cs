@@ -41,7 +41,8 @@ namespace UnityStandardAssets.Vehicles.Car
 
             // get test path for terrain C
             RRT rrt = new RRT(terrain_manager_game_object);
-            my_path = rrt.testPath();
+            //my_path = rrt.testPath();
+			my_path = rrt.Run();
 
             // initialize the starting position for the model
             x = start_pos[0];
