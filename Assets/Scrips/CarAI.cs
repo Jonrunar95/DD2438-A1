@@ -55,7 +55,8 @@ namespace UnityStandardAssets.Vehicles.Car
             Vector3 old_wp = start_pos;
             foreach (var wp in my_path)
             {
-                UnityEngine.Debug.DrawLine(old_wp, wp, Color.red, 100f);
+				
+                UnityEngine.Debug.DrawLine(old_wp, wp, Color.blue, 100f);
                 old_wp = wp;
             }
         }
