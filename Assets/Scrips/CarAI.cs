@@ -17,17 +17,20 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private List<Vector3> my_path;
         private Vector3 car_pos;
-        private const double max_steer_angle = (25f / 360f) * 2f * Math.PI;
+        private const float max_steer_angle = (25f / 360f) * 2f * Mathf.PI;
         private float steering_angle = 0;
-        private double theta = Math.PI / 2f;
-        private double v = 0;
-        private double t;
-        private const double L = 3;
-        private double phi = 0;
-        private double x = 0;
-        private double z = 0;
+        private float theta = Mathf.PI / 2;
+        private float v = 0;
+        private float t;
+        private const float L = 3f;
+        private float phi = 0;
+        private float x = 0;
+        private float z = 0;
         // stores the index of the next node the car should head toward
         private int next;
+		public int iter;
+		Vector3 start_pos;
+        Vector3 goal_pos ;
 
         private void Start()
         {
@@ -35,12 +38,12 @@ namespace UnityStandardAssets.Vehicles.Car
             m_Car = GetComponent<CarController>();
             terrain_manager = terrain_manager_game_object.GetComponent<TerrainManager>();
 
-            Vector3 start_pos = terrain_manager.myInfo.start_pos;
-            Vector3 goal_pos = terrain_manager.myInfo.goal_pos;
+            start_pos = terrain_manager.myInfo.start_pos;
+            goal_pos = terrain_manager.myInfo.goal_pos;
             car_pos = start_pos;
 
             // get test path for terrain C
-            RRT rrt = new RRT(terrain_manager_game_object);
+            RRTS rrt = new RRTS(terrain_manager_game_object);
             //my_path = rrt.testPath();
 			my_path = rrt.Run();
 
@@ -56,11 +59,95 @@ namespace UnityStandardAssets.Vehicles.Car
             foreach (var wp in my_path)
             {
 				
-                UnityEngine.Debug.DrawLine(old_wp, wp, Color.blue, 100f);
+                UnityEngine.Debug.DrawLine(old_wp, wp, Color.red, 100f);
                 old_wp = wp;
             }
         }
+		
+		private void FixedUpdate123()
+        {
+            // stop driving once the goal node is reached
+            if (next >= my_path.Count - 2)
+            {
+                m_Car.Move(0f, 0f, 0f, 0f);
+                return;
+            }
 
+			// update car position
+            car_pos = new Vector3(transform.position.x, 0, transform.position.z);
+
+			
+            // if the car is within a certain distance of the next node, increase the next index by one
+            // the distance is squared (e.g. 25 = 5m distance from car to point)
+            if (Mathf.Pow(car_pos[0] - my_path[next][0], 2) + Mathf.Pow(car_pos[2] - my_path[next][2], 2) < 1)
+            {
+                next++;
+            }
+
+			// the time between the fixed updates
+            //t = Time.fixedDeltaTime;
+			t = 1;
+
+            // velocity in m/s
+            v = 0.6f;
+
+			float xDist = my_path[next][0] - car_pos[0];
+			float zDist = my_path[next][2] - car_pos[2];
+
+			float newDistance = Mathf.Sqrt(Mathf.Pow(xDist,2) + Mathf.Pow(zDist, 2));
+			//float goalDistance = Mathf.Sqrt(Mathf.Pow(car_pos[0] - goal_pos[0],2) + Mathf.Pow(car_pos[2] - goal_pos[2], 2));
+
+			//if(goalDistance < 0.1) {
+				//return new Node2(nearest, newPos, 0, 0, theta);
+			//}
+			float vectorAngle = (float)Mathf.Atan(zDist / xDist);
+			/*  TODO:
+					If on x-axis
+					If on y-axis
+					Check if all quadrants work
+			*/
+			if ((xDist < 0 && zDist > 0) || ( xDist < 0 && zDist < 0)){// if car_next lies in the second or thrid quadrant
+				vectorAngle += Mathf.PI;
+			}
+			if(
+				(theta > vectorAngle) && ((xDist < 0 && zDist > 0) || ( xDist > 0 && zDist < 0))
+				|| (theta < vectorAngle) && ((xDist < 0 && zDist < 0) || ( xDist > 0 && zDist > 0))
+			) {
+
+				theta += v/L*Mathf.Tan(vectorAngle);
+			} else {
+				theta -= v/L*Mathf.Tan(vectorAngle);
+			}
+			float x = car_pos[0] + v * Mathf.Cos(theta);
+			float z = car_pos[2] + v * Mathf.Sin(theta);
+			Vector3 updatedPos = new Vector3(x, 0, z);
+			//UnityEngine.Debug.DrawLine(newPos, updatedPos, Color.blue, 100f);
+			//UnityEngine.Debug.Log("Angle = " + vectorAngle);
+			//UnityEngine.Debug.Log("Tan(Angle) = " + Mathf.Tan(vectorAngle));
+			//UnityEngine.Debug.Log("Theta = " + theta);
+			float phi_min = 0;
+			float best = float.MaxValue;
+			float it = -1f * max_steer_angle;
+			float xx = 0;
+			int number_of_iterations = 50;
+
+			for (float i = -1; i <= 1; i += 2f / number_of_iterations)
+			{
+				xx = Mathf.Abs(theta + ((v*(float)t / L) * Mathf.Tan(it)) - vectorAngle);
+
+				if (xx < best)
+				{
+					best = xx;
+					phi_min = i;
+				}
+
+				it += (1f * 2 * max_steer_angle) / (number_of_iterations - 1);
+			}
+			steering_angle = -phi_min;
+			m_Car.Move(steering_angle, v, 0f, 0f);
+		}
+
+		
         private void FixedUpdate()
         {
             // stop driving once the goal node is reached
@@ -75,7 +162,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             // if the car is within a certain distance of the next node, increase the next index by one
             // the distance is squared (e.g. 25 = 5m distance from car to point)
-            if (Math.Pow(car_pos[0] - my_path[next][0], 2) + Math.Pow(car_pos[2] - my_path[next][2], 2) < 36)
+            if (Mathf.Pow(car_pos[0] - my_path[next][0], 2) + Mathf.Pow(car_pos[2] - my_path[next][2], 2) < 100)
             {
                 next++;
             }
@@ -96,13 +183,13 @@ namespace UnityStandardAssets.Vehicles.Car
             phi = -steering_angle * max_steer_angle;
 
             // angle of car in radians
-            theta += (((v * t) / L) * Math.Tan(phi)) % (2 * Math.PI);
+            theta += (((v * t) / L) * Mathf.Tan(phi)) % (2 * Mathf.PI);
 
-            /*
+            
             // update the predicted position
-            x += v * Math.Cos(theta) * t;
-            z += v * Math.Sin(theta) * t;
-            */
+            //x += v * Mathf.Cos(theta) * t;
+            //z += v * Mathf.Sin(theta) * t;
+            
 
             // used to check the accuracy of the model
             //UnityEngine.Debug.Log(transform.position.x + " | " + transform.position.z);
@@ -124,15 +211,16 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 
             // this is how you control the car
-            /*
-            Move(1, 2, 3, 4)
-                1: steering (-1 = left, 0 = nothing, 1 = right)
-                2: gas pedal (0 - 1)
-                3: break (-1 = backwards, 0 = nothing)
-                4: handbreak
-            */
+            
+            //Move(1, 2, 3, 4)
+            //    1: steering (-1 = left, 0 = nothing, 1 = right)
+            //    2: gas pedal (0 - 1)
+            //    3: break (-1 = backwards, 0 = nothing)
+            //    4: handbreak
+	
             m_Car.Move(steering_angle, gas_pedal, break_pedal, 0f);
         }
+		
 
         /**
         returns a steering angle and speed, depending on the angle between the two points and the direction of the next point
@@ -168,7 +256,7 @@ namespace UnityStandardAssets.Vehicles.Car
             {
                 // get the angle of the car - next vector
                 // Atan() returns the smallest angle (from -pi/2 to pi/2)
-                double vectorAngle = Math.Atan(car_next[2] / car_next[0]);
+                float vectorAngle = Mathf.Atan(car_next[2] / car_next[0]);
                 // TODO: test all edge cases
                 if (
                     // if car_next lies in the second quadrant
@@ -179,27 +267,27 @@ namespace UnityStandardAssets.Vehicles.Car
                     || (car_next[0] < 0 && car_next[2] < 0)
                 )
                 {
-                    vectorAngle += Math.PI;
+                    vectorAngle += Mathf.PI;
                 }
                 else if (
                   // if car_next lies in the fourth quadrant
                   car_next[0] > 0 && car_next[2] < 0
-              )
+              	)
                 {
-                    vectorAngle += 2 * Math.PI;
+                    vectorAngle += 2 * Mathf.PI;
                 }
 
                 // calculates the steering angle (phi) which results in a minimal difference between theta and the vector angle
                 // increase the number of iterations in order to get a more precise result
-                double phi_min = 0;
-                double best = Double.MaxValue;
-                double iter = -1f * max_steer_angle;
-                double x = 0;
+                float phi_min = 0;
+                float best = float.MaxValue;
+                float iter = -1f * max_steer_angle;
+                float x = 0;
                 int number_of_iterations = 20;
 
                 for (float i = -1; i <= 1; i += 2f / number_of_iterations)
                 {
-                    x = Math.Abs(theta + (((v * t) / L) * Math.Tan(iter)) - vectorAngle);
+                    x = Mathf.Abs(theta + (((v * t) / L) * Mathf.Tan(iter)) - vectorAngle);
 
                     if (x < best)
                     {

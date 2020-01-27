@@ -9,20 +9,14 @@ public class Node
     public List<Node> children;
     public Vector3 pos;
     public float cost;
+	public float psi;
+	public float velocity;
     public Node(Node parent, Vector3 pos, float cost)
     {
         this.parent = parent;
         this.pos = pos;
         this.cost = cost;
         this.children = new List<Node>();
-    }
-    public Node getParent()
-    {
-        return parent;
-    }
-    public List<Node> getChildren(int id)
-    {
-        return children;
     }
     public void addChild(Node node)
     {
@@ -45,7 +39,6 @@ namespace UnityStandardAssets.Vehicles.Car
     {
         public GameObject terrain_manager_game_object;
         TerrainManager terrain_manager;
-        List<Vector3> my_path;
         public Graph graph;
         Vector3 start_pos, goal_pos;
         public float x_min, x_max, z_min, z_max;
@@ -153,7 +146,6 @@ namespace UnityStandardAssets.Vehicles.Car
         {
 			float xDist = pos[0] - nearest.pos[0];
 			float zDist = pos[2] - nearest.pos[2];
-			UnityEngine.Debug.Log("X dist " + xDist + " Z dist " + zDist);
 			float xAng= 1;
 			float zAng = 1; 
 			if(zDist != 0) {
@@ -178,32 +170,29 @@ namespace UnityStandardAssets.Vehicles.Car
 			} else {
 				zAng = 1*zSign;
 			}
-			UnityEngine.Debug.Log("X Angle " + xAng);
 			bool obstacleFree = true;
 			if(zDist < 0) {
 				zAng= -1;
 			} else {
 				zAng = 1;
 			}
-			UnityEngine.Debug.Log("Z Angle " + zAng);
 			int length = (int)Mathf.Max(Mathf.Abs(zDist), Mathf.Abs(xDist));
 
 			for(int i = 0; i < length; i++) {
 				int xCord = (int)(nearest.pos[0] - x_min - 1 + xAng*i);
 				int zCord = (int)(nearest.pos[2] - z_min - 1 + i*zAng);
-				UnityEngine.Debug.Log("X cord " + (xCord+x_min) + " Z cord " + (zCord+z_min));
 				if(x_free[xCord, zCord] == 0) {
-					UnityEngine.Debug.Log("Obstacle");
 					obstacleFree = false;
 					break;
 				}
 			}
             return obstacleFree;
         }
-        private Node Steer(Node nearest, Vector3 pos)
+        
+		private Node Steer(Node nearest, Vector3 pos)
         {
-
-            return null;
+			Node newNode = new Node(nearest, pos, 0);
+            return newNode;
         }
 
 		private Node NearestRecursive(Node node, Vector3 pos, Node x_nearest, float minDistance)
@@ -211,17 +200,12 @@ namespace UnityStandardAssets.Vehicles.Car
 			float xDist = pos[0] - node.pos[0];
 			float zDist = pos[2] - node.pos[0];
 			float distance = Mathf.Sqrt(Mathf.Pow(xDist,2) + Mathf.Pow(zDist, 2));
-			//UnityEngine.Debug.Log("Point: " + node.pos[0] + ", " + node.pos[2]);
-			//UnityEngine.Debug.Log("Min Dist; " + minDistance + "New Dist: " + distance);
 			if(distance < minDistance) {
 				x_nearest = node;
 				minDistance = distance;
 			}
-			//UnityEngine.Debug.Log("New Min Dist: " + minDistance);
-			//UnityEngine.Debug.Log("Number of children: " + node.children.Count);
 			int i = 0;
 			foreach (Node childNode in node.children) {
-				//UnityEngine.Debug.Log("Child " + i + " children: " + childNode.children.Count);
 				x_nearest = NearestRecursive(childNode, pos, x_nearest, minDistance);
 				xDist = pos[0] - x_nearest.pos[0];
 				zDist = pos[2] - x_nearest.pos[0];
@@ -229,40 +213,7 @@ namespace UnityStandardAssets.Vehicles.Car
 			} 
 			return x_nearest;
 		}
-		/*
-		private void NearestRecursive(Node node, Vector3 pos)
-		{
-			float distance = Mathf.Sqrt(Mathf.Pow(pos[0]*node.pos[0],2) + Mathf.Pow(pos[2]*node.pos[2], 2));
-			UnityEngine.Debug.Log("Min Dist; " + minDistance + "New Dist: " + distance);
-			if(distance < minDistance) {
-				x_nearest = node;
-				minDistance = distance;
-			}
-			UnityEngine.Debug.Log("New Min Dist: " + minDistance);
-			UnityEngine.Debug.Log("Number of children: " + node.children.Count);
-			if(node.children.Count != 0) {
-				foreach (Node childNode in node.children) {
-					UnityEngine.Debug.Log("Child: " +childNode.children.Count);
-					NearestRecursive(childNode, pos);
-				} 
-			}
-			return;
-		}
-		
-        private Node Nearest(Graph graph, Vector3 pos)
-        {
-			Node nearest = graph.root;
-			float minDistance = float.MaxValue;
-			foreach (Node node in graph.Vertices) {
-				float distance = Mathf.Sqrt(Mathf.Pow(pos[0]*node.pos[0],2) + Mathf.Pow(pos[2]*node.pos[2], 2));
-				if(distance < minDistance) {
-					nearest = node;
-					minDistance = distance;
-				}
-			}
-			return nearest;
-        }
-		*/
+
 		/*
         private List<Node> Near()
         {
@@ -278,36 +229,26 @@ namespace UnityStandardAssets.Vehicles.Car
 		*/
         public List<Vector3> Run()
         {
-			UnityEngine.Debug.Log("Starting position       X: " + start_pos[0] + " Z: " + start_pos[2]);
 			int iter = 0;
 			bool notConverged = true;
 
 			while(notConverged) {
 				iter++;
-				UnityEngine.Debug.Log("-----------------------------------------------------------------------------------------------------------------------------Iteration:" + iter);
 				Vector3 x_rand = SampleFree(iter);
-				UnityEngine.Debug.Log("Sampled point        X: " + x_rand[0] + " Z: " + x_rand[2]);
 
 				Node x_nearest = NearestRecursive(graph.root, x_rand, null, float.MaxValue);
 				
-				UnityEngine.Debug.Log("Node nearest         X: " + x_nearest.pos[0] + " Z: " + x_nearest.pos[2]);
-				//Node x_new = Steer(x_nearest, x_rand);
+				Node x_new = Steer(x_nearest, x_rand);
 				
-				if(ObstacleFree(x_nearest, x_rand)) { // replace x_rand with x_new when steer is ready
-					UnityEngine.Debug.Log("Obstacle Free");	
+				if(ObstacleFree(x_nearest, x_new.pos)) {
 
-					Node x_new = new Node(x_nearest, x_rand, 0);
 					x_nearest.addChild(x_new);
 					
-					//if(x_new.pos[0] == goal_pos[0] && x_new.pos[2] == goal_pos[2]) {
-					if(x_rand[0] == goal_pos[0] && x_rand[2] == goal_pos[2]) {
-						UnityEngine.Debug.Log("CONVERGED");
+					if(x_new.pos[0] == goal_pos[0] && x_new.pos[2] == goal_pos[2]) {
+						UnityEngine.Debug.Log("Converged in " + iter + " iterations");
 						notConverged = false;
 					}
 					x_last = x_new;
-				}
-				else {
-					UnityEngine.Debug.Log("Not Obstacle Free");
 				}
 			}
 			drawPaths(graph.root);
@@ -317,17 +258,10 @@ namespace UnityStandardAssets.Vehicles.Car
 			List<Vector3> myPath = new List<Vector3>();
 
 			Node node = x_last;
-			//UnityEngine.Debug.Log("Node  pos " + node.pos);
 			myPath.Add(node.pos);
-			//UnityEngine.Debug.Log("Node parents pos " + node.parent.pos);
 			while(node.parent != null) {
-				//UnityEngine.Debug.Log("Creating path");
 				node = node.parent;
 				myPath.Insert(0, node.pos);
-			}
-			printXFree();
-			for(int i = 0; i < myPath.Count; i++) {
-				//UnityEngine.Debug.Log("point " + i + " = " + myPath[i][0] + " " + myPath[i][2]);
 			}
 			return myPath;
         }
