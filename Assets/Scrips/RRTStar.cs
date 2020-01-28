@@ -159,7 +159,7 @@ namespace UnityStandardAssets.Vehicles.Car
 				return newPos;
 			}
 			*/
-			if(iter % 10 == 0) {
+			if(iter % 100 == 0) {
 				return goal_pos;
 			}
 			else {
@@ -245,7 +245,7 @@ namespace UnityStandardAssets.Vehicles.Car
 		private Node2 NearestRecursive(Node2 node, Vector3 pos, Node2 x_nearest, float minDistance)
 		{
 			float xDist = pos[0] - node.pos[0];
-			float zDist = pos[2] - node.pos[0];
+			float zDist = pos[2] - node.pos[2];
 			float distance = Mathf.Sqrt(Mathf.Pow(xDist,2) + Mathf.Pow(zDist, 2));
 			if(distance < minDistance) {
 				x_nearest = node;
@@ -254,7 +254,7 @@ namespace UnityStandardAssets.Vehicles.Car
 			foreach (Node2 childNode in node.children) {
 				x_nearest = NearestRecursive(childNode, pos, x_nearest, minDistance);
 				xDist = pos[0] - x_nearest.pos[0];
-				zDist = pos[2] - x_nearest.pos[0];
+				zDist = pos[2] - x_nearest.pos[2];
 				minDistance = Mathf.Sqrt(Mathf.Pow(xDist,2) + Mathf.Pow(zDist, 2));
 			} 
 			return x_nearest;

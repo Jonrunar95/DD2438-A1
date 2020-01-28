@@ -29,8 +29,10 @@ namespace UnityStandardAssets.Vehicles.Car
         // stores the index of the next node the car should head toward
         private int next;
 		public int iter;
-		Vector3 start_pos;
-        Vector3 goal_pos ;
+		public Vector3 start_pos;
+        public Vector3 goal_pos;
+		public bool Done = false;
+
 
         private void Start()
         {
@@ -56,6 +58,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             // plot the path in the scene window
             Vector3 old_wp = start_pos;
+			
             foreach (var wp in my_path)
             {
 				
@@ -67,12 +70,12 @@ namespace UnityStandardAssets.Vehicles.Car
 		private void FixedUpdate123()
         {
             // stop driving once the goal node is reached
-            if (next >= my_path.Count - 2)
+            /*if (next >= my_path.Count - 2)
             {
                 m_Car.Move(0f, 0f, 0f, 0f);
                 return;
             }
-
+			*/
 			// update car position
             car_pos = new Vector3(transform.position.x, 0, transform.position.z);
 
@@ -151,20 +154,28 @@ namespace UnityStandardAssets.Vehicles.Car
         private void FixedUpdate()
         {
             // stop driving once the goal node is reached
-            if (next >= my_path.Count - 2)
+            /*if (next >= my_path.Count - 1)
             {
+				UnityEngine.Debug.Log("ASDFASDFASDGASDSDGDA");
                 m_Car.Move(0f, 0f, 0f, 0f);
                 return;
-            }
+            }*/
 
             // update car position
             car_pos = new Vector3(transform.position.x, 0, transform.position.z);
+			float goalDistance = Mathf.Sqrt(Mathf.Pow(car_pos[0] - goal_pos[0],2) + Mathf.Pow(car_pos[2] - goal_pos[2], 2));
+			UnityEngine.Debug.Log("goalDistance " + goalDistance);
+			if(goalDistance < 10) {
+				Done = true;
+			}
 
             // if the car is within a certain distance of the next node, increase the next index by one
             // the distance is squared (e.g. 25 = 5m distance from car to point)
             if (Mathf.Pow(car_pos[0] - my_path[next][0], 2) + Mathf.Pow(car_pos[2] - my_path[next][2], 2) < 100)
             {
-                next++;
+				if(next < my_path.Count-2) {
+					next++;
+				}
             }
 
             // the time between the fixed updates
@@ -197,8 +208,9 @@ namespace UnityStandardAssets.Vehicles.Car
 
             // accelerate or break, depending on the desired velocity
             //TODO: improve the dynamics of the speed
-            float gas_pedal = 0;
+            float gas_pedal = 0.3f;
             float break_pedal = 0;
+			/*
             if (v < result[0])
             {
                 gas_pedal = 0.5f;
@@ -208,7 +220,7 @@ namespace UnityStandardAssets.Vehicles.Car
             {
                 gas_pedal = 0f;
                 break_pedal = -0.5f;
-            }
+            }*/
 
             // this is how you control the car
             
@@ -217,8 +229,14 @@ namespace UnityStandardAssets.Vehicles.Car
             //    2: gas pedal (0 - 1)
             //    3: break (-1 = backwards, 0 = nothing)
             //    4: handbreak
-	
-            m_Car.Move(steering_angle, gas_pedal, break_pedal, 0f);
+			UnityEngine.Debug.Log(steering_angle + " " + gas_pedal + " " + break_pedal + " " + 0f);
+			if(Done == true) {
+				m_Car.Move(0f, 0f, 0f, 1f);
+				UnityEngine.Debug.Log("DONE");
+			} else {
+				m_Car.Move(steering_angle, gas_pedal, break_pedal, 0f);
+			}
+            
         }
 		
 
@@ -244,7 +262,7 @@ namespace UnityStandardAssets.Vehicles.Car
             // speed (needs improvement)
             if (angle > 81)
             {
-                result[0] = 0.1;
+                result[0] = 0.3;
             }
             else
             {
