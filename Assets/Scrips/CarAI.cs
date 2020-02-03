@@ -15,7 +15,7 @@ namespace UnityStandardAssets.Vehicles.Car
         public GameObject terrain_manager_game_object;
         TerrainManager terrain_manager;
 
-        private List<Vector3> my_path;
+        private List<Node2> my_path;
         private Vector3 car_pos;
         private const float max_steer_angle = (25f / 360f) * 2f * Mathf.PI;
         private float steering_angle = 0;
@@ -32,6 +32,9 @@ namespace UnityStandardAssets.Vehicles.Car
         public Vector3 start_pos;
         public Vector3 goal_pos;
         public bool Done = false;
+		public float theta2 = Mathf.PI / 2;
+		public bool nextPoint = false;
+		public float sinceLastChange = 0;
 
 
         private void Start()
@@ -45,7 +48,7 @@ namespace UnityStandardAssets.Vehicles.Car
             car_pos = start_pos;
 
             // get test path for terrain C
-            RRTS rrt = new RRTS(terrain_manager_game_object);
+            RRTS rrt = new RRTS(terrain_manager_game_object, m_Car.MaxSpeed, m_Car.m_MaximumSteerAngle);
             //my_path = rrt.testPath();
             my_path = rrt.Run();
 
@@ -62,21 +65,20 @@ namespace UnityStandardAssets.Vehicles.Car
             foreach (var wp in my_path)
             {
 
-                UnityEngine.Debug.DrawLine(old_wp, wp, Color.red, 100f);
-                old_wp = wp;
+                UnityEngine.Debug.DrawLine(old_wp, wp.pos, Color.red, 100f);
+                old_wp = wp.pos;
             }
         }
 
 
-        private void FixedUpdate()
+        /*private void FixedUpdate()
         {
             // stop driving once the goal node is reached
-            /*if (next >= my_path.Count - 1)
-            {
-				UnityEngine.Debug.Log("ASDFASDFASDGASDSDGDA");
-                m_Car.Move(0f, 0f, 0f, 0f);
-                return;
-            }*/
+            //if (next >= my_path.Count - 1)
+            //{
+            //    m_Car.Move(0f, 0f, 0f, 0f);
+            //    return;
+            //}
 
             // update car position
             car_pos = new Vector3(transform.position.x, 0, transform.position.z);
@@ -134,12 +136,12 @@ namespace UnityStandardAssets.Vehicles.Car
             
             if (v < result[0])
             {
-                gas_pedal = 0.5f;
+                gas_pedal = 1f;
                 break_pedal = 0f;
             }
             else if (v > result[0])
             {
-                gas_pedal = 0f;
+                gas_pedal = 1f;
                 break_pedal = 0f;
             }
 
@@ -150,7 +152,7 @@ namespace UnityStandardAssets.Vehicles.Car
             //    2: gas pedal (0 - 1)
             //    3: break (-1 = backwards, 0 = nothing)
             //    4: handbreak
-            UnityEngine.Debug.Log(steering_angle + " " + gas_pedal + " " + break_pedal + " " + 0f);
+            //UnityEngine.Debug.Log(steering_angle + " " + gas_pedal + " " + break_pedal + " " + 0f);
             if (Done == true)
             {
                 m_Car.Move(0f, 0f, 0f, 1f);
@@ -158,16 +160,19 @@ namespace UnityStandardAssets.Vehicles.Car
             }
             else
             {
-                m_Car.Move(steering_angle, gas_pedal, break_pedal, 0f);
+				float steer = steering_angle/max_steer_angle;
+				UnityEngine.Debug.Log("steering_angle: " + steering_angle + " CurrentSteerAngle: " + m_Car.CurrentSteerAngle);
+				UnityEngine.Debug.Log("steer: " + steer + " gas_pedal: " + gas_pedal + " break_pedal " + break_pedal);
+				m_Car.Move(steer, gas_pedal, break_pedal, 0f);
             }
 
-        }
+        }*/
 
 
         /**
         returns a steering angle and speed, depending on the angle between the two points and the direction of the next point
         */
-        private double[] calculateDesiredConfiguration()
+        /*private double[] calculateDesiredConfiguration()
         {
             Vector3 point1 = new Vector3();
             Vector3 point2 = new Vector3();
@@ -220,7 +225,7 @@ namespace UnityStandardAssets.Vehicles.Car
             // only apply model dynamics when driving
             if (v > 0)
             {
-                UnityEngine.Debug.Log(theta);
+                //UnityEngine.Debug.Log(theta);
 
                 // get the angle of the car - next vector
                 // Atan() returns the smallest angle (from -pi/2 to pi/2)
@@ -293,93 +298,178 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 
             return result;
-        }
+        }*/
 
-        private void FixedUpdate123()
+        private void FixedUpdate()
         {
-            // stop driving once the goal node is reached
-            /*if (next >= my_path.Count - 2)
-            {
-                m_Car.Move(0f, 0f, 0f, 0f);
-                return;
-            }
-            */
-            // update car position
-            car_pos = new Vector3(transform.position.x, 0, transform.position.z);
-
-
-            // if the car is within a certain distance of the next node, increase the next index by one
-            // the distance is squared (e.g. 25 = 5m distance from car to point)
-            if (Mathf.Pow(car_pos[0] - my_path[next][0], 2) + Mathf.Pow(car_pos[2] - my_path[next][2], 2) < 1)
-            {
-                next++;
-            }
-
-            // the time between the fixed updates
-            //t = Time.fixedDeltaTime;
-            t = 1;
-
-            // velocity in m/s
-            v = 0.6f;
-
-            float xDist = my_path[next][0] - car_pos[0];
-            float zDist = my_path[next][2] - car_pos[2];
-
-            float newDistance = Mathf.Sqrt(Mathf.Pow(xDist, 2) + Mathf.Pow(zDist, 2));
-            //float goalDistance = Mathf.Sqrt(Mathf.Pow(car_pos[0] - goal_pos[0],2) + Mathf.Pow(car_pos[2] - goal_pos[2], 2));
-
-            //if(goalDistance < 0.1) {
-            //return new Node2(nearest, newPos, 0, 0, theta);
-            //}
-            float vectorAngle = (float)Mathf.Atan(zDist / xDist);
-            /*  TODO:
-                    If on x-axis
-                    If on y-axis
-                    Check if all quadrants work
-            */
-            if ((xDist < 0 && zDist > 0) || (xDist < 0 && zDist < 0))
-            {// if car_next lies in the second or thrid quadrant
-                vectorAngle += Mathf.PI;
-            }
-            if (
-                (theta > vectorAngle) && ((xDist < 0 && zDist > 0) || (xDist > 0 && zDist < 0))
-                || (theta < vectorAngle) && ((xDist < 0 && zDist < 0) || (xDist > 0 && zDist > 0))
-            )
-            {
-
-                theta += v / L * Mathf.Tan(vectorAngle);
-            }
-            else
-            {
-                theta -= v / L * Mathf.Tan(vectorAngle);
-            }
-            float x = car_pos[0] + v * Mathf.Cos(theta);
-            float z = car_pos[2] + v * Mathf.Sin(theta);
-            Vector3 updatedPos = new Vector3(x, 0, z);
-            //UnityEngine.Debug.DrawLine(newPos, updatedPos, Color.blue, 100f);
-            //UnityEngine.Debug.Log("Angle = " + vectorAngle);
-            //UnityEngine.Debug.Log("Tan(Angle) = " + Mathf.Tan(vectorAngle));
-            //UnityEngine.Debug.Log("Theta = " + theta);
-            float phi_min = 0;
-            float best = float.MaxValue;
-            float it = -1f * max_steer_angle;
-            float xx = 0;
-            int number_of_iterations = 50;
-
-            for (float i = -1; i <= 1; i += 2f / number_of_iterations)
-            {
-                xx = Mathf.Abs(theta + ((v * (float)t / L) * Mathf.Tan(it)) - vectorAngle);
-
-                if (xx < best)
-                {
-                    best = xx;
-                    phi_min = i;
-                }
-
-                it += (1f * 2 * max_steer_angle) / (number_of_iterations - 1);
-            }
-            steering_angle = -phi_min;
-            m_Car.Move(steering_angle, v, 0f, 0f);
+			iter++;
+			sinceLastChange += m_Car.CurrentSpeed*t;
+			if(nextPoint && sinceLastChange > 6) {
+				next++;
+				nextPoint = false;
+			}
+			if(Done) {
+				m_Car.Move(0f, 0f ,0f, 1f);
+			} else {
+				//UnityEngine.Debug.Log("----------------------------- Iteration: " + iter + " -----------------------------");
+				car_pos = new Vector3(transform.position.x, 0, transform.position.z);
+				UnityEngine.Debug.Log(next + "/" + my_path.Count);
+				float[] results = Steer(car_pos, my_path[next].pos);
+				float steer = -results[1]/max_steer_angle;
+				//UnityEngine.Debug.Log("Beta: " + steer+ " Accel: " + results[0] + " Current steer angle: " + m_Car.CurrentSteerAngle + " v " + m_Car.CurrentSpeed);
+				m_Car.Move(steer, results[0], 0f, 0f);
+			}			
         }
-    }
+		/*private float[] Config(Vector3 curPos, Vector3 pos) {
+			float xDist = pos[0] - curPos[0];
+			float zDist = pos[2] - curPos[2];
+			float newDistance = Mathf.Sqrt(Mathf.Pow(xDist,2) + Mathf.Pow(zDist, 2));
+			float goalDistance = Mathf.Sqrt(Mathf.Pow(curPos[0] - goal_pos[0],2) + Mathf.Pow(curPos[2] - goal_pos[2], 2));
+			if(newDistance < 5) {
+				next++;
+			} else if(goalDistance < 10) {
+				Done = true;
+			}
+			float vectorAngle = Mathf.Atan(zDist / xDist);
+			//UnityEngine.Debug.Log("Vector angle before " + vectorAngle);
+			if (
+				(xDist < 0 && zDist > 0 && vectorAngle < 0) // if car_next lies in the second quadrant
+				|| (xDist < 0 && vectorAngle == 0) // if car_next lies on the x axis and points to the left
+				|| (xDist < 0 && zDist < 0) // if car_next lies in the third quadrant
+			) {
+				vectorAngle += Mathf.PI;
+			}
+			else if (xDist > 0 && zDist < 0)// if car_next lies in the fourth quadrant
+			{
+				vectorAngle += 2 * Mathf.PI;
+			}
+
+
+		}*/
+    	private float[] Steer(Vector3 curPos, Vector3 pos)
+        {
+			t = Time.fixedDeltaTime;
+			float L = 3.0f;
+			float Accel = 1f;
+			
+			theta = nfmod(-m_Car.transform.eulerAngles.y * (Mathf.PI/180.0f) + Mathf.PI / 2.0f, 2*Mathf.PI);
+			float v = m_Car.CurrentSpeed;
+
+			float xDist = pos[0] - curPos[0];
+			float zDist = pos[2] - curPos[2];
+
+			float newDistance = Mathf.Sqrt(Mathf.Pow(xDist,2) + Mathf.Pow(zDist, 2));
+			float goalDistance = Mathf.Sqrt(Mathf.Pow(curPos[0] - goal_pos[0],2) + Mathf.Pow(curPos[2] - goal_pos[2], 2));
+			if(newDistance < 5 && !nextPoint) {
+				UnityEngine.Debug.Log("Changing to next point");
+				nextPoint = true;
+				sinceLastChange = 0;
+			} else if(goalDistance < 10) {
+				Done = true;
+			}
+
+			float vectorAngle = Mathf.Atan(zDist / xDist);
+			//UnityEngine.Debug.Log("Vector angle before " + vectorAngle);
+			if (
+				(xDist < 0 && zDist > 0 && vectorAngle < 0) // if car_next lies in the second quadrant
+				|| (xDist < 0 && vectorAngle == 0) // if car_next lies on the x axis and points to the left
+				|| (xDist < 0 && zDist < 0) // if car_next lies in the third quadrant
+			) {
+				vectorAngle += Mathf.PI;
+			}
+			else if (xDist > 0 && zDist < 0)// if car_next lies in the fourth quadrant
+			{
+				vectorAngle += 2 * Mathf.PI;
+			}
+			//UnityEngine.Debug.Log("Vector angle after " + vectorAngle);
+			float beta = 0;
+			if (vectorAngle < Mathf.PI/2) {
+				//UnityEngine.Debug.Log("Vector in the first quadrant");
+				if(theta < Mathf.PI/2) {
+					//UnityEngine.Debug.Log("Theta in the first quadrant");
+					beta = vectorAngle - theta;
+				} else if(theta < Mathf.PI) {
+					//UnityEngine.Debug.Log("Theta in the second quadrant");
+					beta = vectorAngle - theta;
+				} else if(theta < 3*Mathf.PI/2) {
+					//UnityEngine.Debug.Log("Theta in the third quadrant");
+					beta = -vectorAngle;
+				} else if(theta < 2*Mathf.PI) {
+					//UnityEngine.Debug.Log("Theta in the fourth quadrant");
+					beta = 2*Mathf.PI+vectorAngle-theta;
+				}
+			} else if (vectorAngle < Mathf.PI) {
+				//UnityEngine.Debug.Log("Vector in the second quadrant");
+				if(theta < Mathf.PI/2) {
+					//UnityEngine.Debug.Log("Theta in the first quadrant");
+					beta =vectorAngle  - theta;
+				} else if(theta < Mathf.PI) {
+					//UnityEngine.Debug.Log("Theta in the second quadrant");
+					beta = vectorAngle - theta;
+				} else if(theta < 3*Mathf.PI/2) {
+					//UnityEngine.Debug.Log("Theta in the third quadrant");
+					beta = vectorAngle - theta;
+				} else if(theta < 2*Mathf.PI) {
+					//UnityEngine.Debug.Log("Theta in the fourth quadrant");
+					beta = -vectorAngle;
+				}
+			} else if (vectorAngle < 3*Mathf.PI/2) {
+				//UnityEngine.Debug.Log("Vector in the third quadrant");
+				if(theta < Mathf.PI/2) {
+					//UnityEngine.Debug.Log("Theta in the first quadrant");
+					beta = vectorAngle;
+				} else if(theta < Mathf.PI) {
+					//UnityEngine.Debug.Log("Theta in the second quadrant");
+					beta = vectorAngle - theta;
+				} else if(theta < 3*Mathf.PI/2) {
+					//UnityEngine.Debug.Log("Theta in the third quadrant");
+					beta = vectorAngle - theta;
+				} else if(theta < 2*Mathf.PI) {
+					//UnityEngine.Debug.Log("Theta in the fourth quadrant");
+					beta = vectorAngle - theta;
+				}
+			} else if (vectorAngle < 2*Mathf.PI) {
+				//UnityEngine.Debug.Log("Vector in the fourth quadrant");
+				if(theta < Mathf.PI/2) {
+					//UnityEngine.Debug.Log("Theta in the first quadrant");
+					beta = -2*Mathf.PI - vectorAngle - theta;
+				} else if(theta < Mathf.PI) {
+					//UnityEngine.Debug.Log("Theta in the second quadrant");
+					beta = -(Mathf.Sign(vectorAngle - Mathf.PI - theta));
+				} else if(theta < 3*Mathf.PI/2) {
+					//UnityEngine.Debug.Log("Theta in the third quadrant");
+					beta = vectorAngle - theta;
+				} else if(theta < 2*Mathf.PI) {
+					//UnityEngine.Debug.Log("Theta in the fourth quadrant");
+					beta = vectorAngle - theta;
+				}
+			} else {
+				//UnityEngine.Debug.Log("None of the above. Should not happen.");
+				beta = vectorAngle - theta;
+			}
+			//UnityEngine.Debug.Log("Beta " + beta);
+
+			//vectorAngle += theta;
+			if(beta < -max_steer_angle) {
+				beta = -max_steer_angle;
+			} else if(beta > max_steer_angle) {
+				beta = max_steer_angle;
+			}
+			//UnityEngine.Debug.Log("Final beta" + beta);
+			//UnityEngine.Debug.Log("Old theta "+ theta);
+			float tanPsi = Mathf.Tan(beta);
+			v += Accel;
+			if(v > 20) {
+				Accel = 0;
+			}
+			theta += v*t/L*tanPsi;
+			theta = nfmod(theta, 2*Mathf.PI);
+			float[] results = {Accel, beta};
+			return results;
+        }
+		public float nfmod(float a,float b)
+		{
+			return a - b * Mathf.Floor(a / b);
+		}
+	}
 }
