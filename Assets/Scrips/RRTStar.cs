@@ -148,7 +148,7 @@ namespace UnityStandardAssets.Vehicles.Car
 			}
 		}
         public Vector3 SampleFree(int iter)
-        { 
+        {
 			/*if(iter == 1) {
 				Vector3 newPos = new Vector3(195, 0, 137);
 				return newPos;
@@ -219,60 +219,26 @@ namespace UnityStandardAssets.Vehicles.Car
 						zStop = (int)(z_max - z_min-1);
 					}
 				}
-
-            if (iter % 1000 == 0)
-            {
-                return goal_pos;
-            }
-            else
-            {
-                int xStart, xStop, zStart, zStop;
-                if (iter < 100)
-                {
-                    xStart = (int)Math.Max(start_pos[0] - x_min - 20, 0);
-                    xStop = (int)Math.Min(start_pos[0] - x_min + 20, (x_max - x_min - 1));
-                    zStart = (int)Math.Max(start_pos[2] - z_min - 20, 0);
-                    zStop = (int)Math.Min(start_pos[2] - z_min + 20, (int)(z_max - z_min - 1));
-                }
-                else if (iter < 200)
-                {
-                    xStart = (int)Math.Max(start_pos[0] - x_min - 40, 0);
-                    xStop = (int)Math.Min(start_pos[0] - x_min + 40, (x_max - x_min - 1));
-                    zStart = (int)Math.Max(start_pos[2] - z_min - 40, 0);
-                    zStop = (int)Math.Min(start_pos[2] - z_min + 40, (int)(z_max - z_min - 1));
-                }
-                else if (iter < 300)
-                {
-                    xStart = (int)Math.Max(start_pos[0] - x_min - 60, 0);
-                    xStop = (int)Math.Min(start_pos[0] - x_min + 60, (x_max - x_min - 1));
-                    zStart = (int)Math.Max(start_pos[2] - z_min - 60, 0);
-                    zStop = (int)Math.Min(start_pos[2] - z_min + 60, (int)(z_max - z_min - 1));
-                }
-                else if (iter < 400)
-                {
-                    xStart = (int)Math.Max(start_pos[0] - x_min - 80, 0);
-                    xStop = (int)Math.Min(start_pos[0] - x_min + 80, (x_max - x_min - 1));
-                    zStart = (int)Math.Max(start_pos[2] - z_min - 80, 0);
-                    zStop = (int)Math.Min(start_pos[2] - z_min + 80, (int)(z_max - z_min - 1));
-                }
-                else
-                {
-                    if (iter % 50 == 0)
-                    {
-                        xStart = (int)Math.Max(goal_pos[0] - x_min - 40, 0);
-                        xStop = (int)Math.Min(goal_pos[0] - x_min + 40, (x_max - x_min - 1));
-                        zStart = (int)Math.Max(goal_pos[2] - z_min - 40, 0);
-                        zStop = (int)Math.Min(goal_pos[2] - z_min + 40, (int)(z_max - z_min - 1));
-                        //UnityEngine.Debug.Log("SAMPLING NEAR GOAL");
-                    }
-                    else
-                    {
-                        xStart = 0;
-                        xStop = (int)(x_max - x_min - 1);
-                        zStart = 0;
-                        zStop = (int)(z_max - z_min - 1);
-                    }
-                }
+				System.Random r = new System.Random();
+				bool notDone = true;
+				int xInt = 0;
+				int zInt = 0;
+				while (notDone)
+				{
+					xInt = r.Next(xStart, xStop);
+					zInt = r.Next(zStart, zStop);
+					//UnityEngine.Debug.Log("Starting position" + start_pos);
+					//UnityEngine.Debug.Log((xStart+x_min) + " " + (xStop+x_min) + " " + (zStart+x_min) + " " + (zStop+x_min));
+					if (x_free[xInt, zInt] == 1)
+					{
+						notDone = false;
+					}
+				}
+				Vector3 pos = new Vector3(xInt + x_min + 1, 0, zInt + z_min + 1);
+				//UnityEngine.Debug.Log("Sampled position" + pos);
+				return pos;
+			}
+		}
 
 		public bool ObstacleFree(Vector3 nearPos, Vector3 pos) {
 			int xCord = (int)(pos[0] - x_min - 1 );
@@ -558,7 +524,6 @@ namespace UnityStandardAssets.Vehicles.Car
 				//UnityEngine.Debug.Log("New Pos: " + newPos + " Velocity: " + v + " Accel: " + Accel);
 
                 //UnityEngine.Debug.Log("xDist: " + xDist + " zDist: " + zDist + " Psi: "+ beta + " tanPsi " + tanPsi);
-                Vector3 updatePos = new Vector3(newPos[0] + v * Mathf.Cos(theta), 0, newPos[2] + v * Mathf.Sin(theta));
                 //if(i%2 == 0) { UnityEngine.Debug.DrawLine(newPos, updatePos, Color.blue, 100f); }
                 //else {UnityEngine.Debug.DrawLine(newPos, updatePos, Color.black, 1000f); }
                 if (!ObstacleFree(newPos, updatePos))
