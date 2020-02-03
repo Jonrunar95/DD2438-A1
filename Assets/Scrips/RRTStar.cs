@@ -69,9 +69,11 @@ namespace UnityStandardAssets.Vehicles.Car
 		public float maxSteerAngle;
 		private const float max_steer_angle = (25f / 360f) * 2f * Mathf.PI;
 		public float t = 0.02f;
-		public int maxIter = 500;
+		public int maxIter = 10000;
 		public int stepSize;
-		public int nearRadius = 20;
+		public int nearRadius = 25;
+		int nearCount = 0;
+		public List<Node2> near;
         public RRTS(GameObject terrain_manager_game_object, float m_maxSpeed, float m_MaximumSteerAngle)
         {
 			stepSize = (int)(5/t);
@@ -93,20 +95,21 @@ namespace UnityStandardAssets.Vehicles.Car
             float[,] x_int = terrain_manager.myInfo.traversability;
             int N = x_int.GetLength(0);
             int M = x_int.GetLength(1);
-            int lenX = (int)(x_max - x_min);
-            int lenZ = (int)(z_max - z_min);
-            x_free = new int[lenX, lenZ];
-            int n = lenX / N;
-            int m = lenZ / M;
-            int buffer = 2;
+            float lenX = (x_max - x_min);
+            float lenZ = (z_max - z_min);
+            x_free = new int[(int)lenX, (int)lenZ];
+            float n = lenX / N;
+            float m = lenZ / M;
+			UnityEngine.Debug.Log("ASDFASDF  " + n + " " + m);
+            int buffer = 1;
 			int x_length = (int)(x_max-x_min);
 			int z_length = (int)(z_max-z_min);
             for (int i = 0; i < lenX; i++)
             {
                 for (int j = 0; j < lenZ; j++)
                 {
-                    int posX = i / n;
-                    int posZ = j / m;
+                    int posX = (int)(i / n);
+                    int posZ = (int)(j / m);
                     if (x_int[posX, posZ] == 0.0)
                     {
                         x_free[i, j] = 1;
@@ -239,7 +242,6 @@ namespace UnityStandardAssets.Vehicles.Car
 				return pos;
 			}
 		}
-
 		public bool ObstacleFree(Vector3 nearPos, Vector3 pos) {
 			int xCord = (int)(pos[0] - x_min - 1 );
 			int zCord = (int)(pos[2] - z_min - 1);
@@ -327,23 +329,22 @@ namespace UnityStandardAssets.Vehicles.Car
 			} 
 			return x_nearest;
 		}
-
-        private List<Node2> NearRecursive(Node2 node, Node2 x_new, List<Node2> near, float minDistance)
+        private void NearRecursive(Node2 node, Node2 x_new, float minDistance)
         {
             Vector3 pos = x_new.pos;
             float xDist = pos[0] - node.pos[0];
             float zDist = pos[2] - node.pos[2];
             float distance = Mathf.Sqrt(Mathf.Pow(xDist, 2) + Mathf.Pow(zDist, 2));
-
+			//UnityEngine.Debug.Log("Near distance: " +distance);
             if ((distance < minDistance) && (x_new != node) && (x_new.parent != node))
             {
+				nearCount++;
                 near.Add(node);
             }
             foreach (Node2 childNode in node.children)
             {
-                near = NearRecursive(childNode, x_new, near, minDistance);
+                NearRecursive(childNode, x_new, minDistance);
             }
-            return near;
         }
         public float nfmod(float a, float b)
         {
@@ -491,7 +492,27 @@ namespace UnityStandardAssets.Vehicles.Car
                     beta = vectorAngle - theta;
                 }
                 //UnityEngine.Debug.Log("Beta " + beta);
-
+				if(beta < Mathf.PI/4 && beta > - Mathf.PI/4) {
+					Accel = 1f;
+				} else if(beta < Mathf.PI/2 && beta > - Mathf.PI/2) {
+					Accel = 0.5f;
+				} else if(beta < 3*Mathf.PI/4 && beta > - 3*Mathf.PI/4) {
+					if(v > 20) {
+						v = 20;
+					}
+					Accel = 0f;
+				} else if(beta < Mathf.PI && beta > - Mathf.PI) {
+					Accel = 0f;
+					if(v > 20) {
+						v = 20;
+					}
+				} else if(beta < 2*Mathf.PI && beta > - 2*Mathf.PI) {
+					Accel = 0f;
+					if(v > 20) {
+						v = 20;
+					}
+					//UnityEngine.Debug.Log("beta more than PI");
+				}
 				//vectorAngle += theta;
 				if(beta < -maxSteerAngle) {
 					beta = -maxSteerAngle;
@@ -502,9 +523,9 @@ namespace UnityStandardAssets.Vehicles.Car
 				//UnityEngine.Debug.Log("Old theta "+ theta);
 				float tanPsi = Mathf.Tan(beta);
 				
-				if(v > 20) {
+				/*if(v > 20) {
 					Accel = 0;
-				}
+				}*/
 				v += t*Accel;
 				theta += t*v/L*tanPsi;
 				theta = nfmod(theta, 2*Mathf.PI);
@@ -556,9 +577,10 @@ namespace UnityStandardAssets.Vehicles.Car
 					//UnityEngine.Debug.Log("Obstacle Free");
 					//x_new.parent = x_nearest;
 					//x_nearest.addChild(x_new);
-
-					List<Node2> near = new List<Node2>();
-					near = NearRecursive(graph.root, x_new, near, nearRadius);
+					near = new List<Node2>();
+					NearRecursive(graph.root, x_new, nearRadius);
+					//UnityEngine.Debug.Log("Near Count: " + near.Count + " vs " + nearCount);
+					nearCount = 0;
 					//UnityEngine.Debug.Log("Number of near = " + near.Count);
 					Node2 newParent = x_nearest;
 					Node2 newChild = x_new;
