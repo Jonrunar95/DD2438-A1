@@ -9,7 +9,7 @@ public class Graph2
     public Node2 root;
     public Graph2(Vector3 pos)
     {
-        this.root = new Node2(null, pos, 0, 0, Mathf.PI/2);
+        this.root = new Node2(null, pos, 0, 0, Mathf.PI / 2);
     }
 }
 
@@ -19,16 +19,17 @@ public class Node2
     public List<Node2> children;
     public Vector3 pos;
     public float cost;
-	public float theta;
-	public float velocity;
-	public Node2(Node2 parent, Vector3 pos, float cost, float velocity, float theta) {
-		this.parent = parent;
+    public float theta;
+    public float velocity;
+    public Node2(Node2 parent, Vector3 pos, float cost, float velocity, float theta)
+    {
+        this.parent = parent;
         this.pos = pos;
         this.cost = cost;
-		this.velocity = velocity;
-		this.theta = theta;
+        this.velocity = velocity;
+        this.theta = theta;
         this.children = new List<Node2>();
-	}
+    }
     public Node2 getParent()
     {
         return parent;
@@ -41,9 +42,10 @@ public class Node2
     {
         children.Add(node);
     }
-	public void removeChild(Node2 node) {
-		children.Remove(node);
-	}
+    public void removeChild(Node2 node)
+    {
+        children.Remove(node);
+    }
 }
 
 namespace UnityStandardAssets.Vehicles.Car
@@ -111,21 +113,21 @@ namespace UnityStandardAssets.Vehicles.Car
                     }
                     else
                     {
-						x_free[i, j] = 0;
                         x_free[i, j] = 0;
-						int bufferXPlus = buffer;
-						int bufferXMinus = -buffer;
-						int bufferZPlus = buffer;
-						int bufferZMinus = -buffer;
-						if(bufferXMinus+i < 0) { bufferXMinus = 0; }
-						if(bufferXPlus+i > x_length-1) { bufferXPlus = 0; }
-						if(bufferZMinus+j < 0) { bufferZMinus = 0; }
-						if(bufferZPlus+j > z_length-1) { bufferZPlus = 0; }
+                        x_free[i, j] = 0;
+                        int bufferXPlus = buffer;
+                        int bufferXMinus = -buffer;
+                        int bufferZPlus = buffer;
+                        int bufferZMinus = -buffer;
+                        if (bufferXMinus + i < 0) { bufferXMinus = 0; }
+                        if (bufferXPlus + i > x_length - 1) { bufferXPlus = 0; }
+                        if (bufferZMinus + j < 0) { bufferZMinus = 0; }
+                        if (bufferZPlus + j > z_length - 1) { bufferZPlus = 0; }
                         for (int k = bufferXMinus; k <= bufferXPlus; k++)
                         {
                             for (int l = bufferZMinus; l <= bufferZPlus; l++)
                             {
-                                x_free[k+i, l+j] = 0;
+                                x_free[k + i, l + j] = 0;
                             }
                         }
                     }
@@ -133,8 +135,9 @@ namespace UnityStandardAssets.Vehicles.Car
             }
             return x_free;
         }
-		public void printXFree() {
-			int N = x_free.GetLength(0);
+        public void printXFree()
+        {
+            int N = x_free.GetLength(0);
             int M = x_free.GetLength(1);
 			for(int i = 0; i < N; i++) {
 				string s = i+x_min + ": ";
@@ -217,26 +220,59 @@ namespace UnityStandardAssets.Vehicles.Car
 					}
 				}
 
-				System.Random r = new System.Random();
-				bool notDone = true;
-				int xInt = 0;
-				int zInt = 0;
-				while (notDone)
-				{
-					xInt = r.Next(xStart, xStop);
-					zInt = r.Next(zStart, zStop);
-					//UnityEngine.Debug.Log("Starting position" + start_pos);
-					//UnityEngine.Debug.Log((xStart+x_min) + " " + (xStop+x_min) + " " + (zStart+x_min) + " " + (zStop+x_min));
-					if (x_free[xInt, zInt] == 1)
-					{
-						notDone = false;
-					}
-				}
-				Vector3 pos = new Vector3(xInt+x_min+1, 0, zInt+z_min+1);
-				//UnityEngine.Debug.Log("Sampled position" + pos);
-				return pos;
-			}
-		}
+            if (iter % 1000 == 0)
+            {
+                return goal_pos;
+            }
+            else
+            {
+                int xStart, xStop, zStart, zStop;
+                if (iter < 100)
+                {
+                    xStart = (int)Math.Max(start_pos[0] - x_min - 20, 0);
+                    xStop = (int)Math.Min(start_pos[0] - x_min + 20, (x_max - x_min - 1));
+                    zStart = (int)Math.Max(start_pos[2] - z_min - 20, 0);
+                    zStop = (int)Math.Min(start_pos[2] - z_min + 20, (int)(z_max - z_min - 1));
+                }
+                else if (iter < 200)
+                {
+                    xStart = (int)Math.Max(start_pos[0] - x_min - 40, 0);
+                    xStop = (int)Math.Min(start_pos[0] - x_min + 40, (x_max - x_min - 1));
+                    zStart = (int)Math.Max(start_pos[2] - z_min - 40, 0);
+                    zStop = (int)Math.Min(start_pos[2] - z_min + 40, (int)(z_max - z_min - 1));
+                }
+                else if (iter < 300)
+                {
+                    xStart = (int)Math.Max(start_pos[0] - x_min - 60, 0);
+                    xStop = (int)Math.Min(start_pos[0] - x_min + 60, (x_max - x_min - 1));
+                    zStart = (int)Math.Max(start_pos[2] - z_min - 60, 0);
+                    zStop = (int)Math.Min(start_pos[2] - z_min + 60, (int)(z_max - z_min - 1));
+                }
+                else if (iter < 400)
+                {
+                    xStart = (int)Math.Max(start_pos[0] - x_min - 80, 0);
+                    xStop = (int)Math.Min(start_pos[0] - x_min + 80, (x_max - x_min - 1));
+                    zStart = (int)Math.Max(start_pos[2] - z_min - 80, 0);
+                    zStop = (int)Math.Min(start_pos[2] - z_min + 80, (int)(z_max - z_min - 1));
+                }
+                else
+                {
+                    if (iter % 50 == 0)
+                    {
+                        xStart = (int)Math.Max(goal_pos[0] - x_min - 40, 0);
+                        xStop = (int)Math.Min(goal_pos[0] - x_min + 40, (x_max - x_min - 1));
+                        zStart = (int)Math.Max(goal_pos[2] - z_min - 40, 0);
+                        zStop = (int)Math.Min(goal_pos[2] - z_min + 40, (int)(z_max - z_min - 1));
+                        //UnityEngine.Debug.Log("SAMPLING NEAR GOAL");
+                    }
+                    else
+                    {
+                        xStart = 0;
+                        xStop = (int)(x_max - x_min - 1);
+                        zStart = 0;
+                        zStop = (int)(z_max - z_min - 1);
+                    }
+                }
 
 		public bool ObstacleFree(Vector3 nearPos, Vector3 pos) {
 			int xCord = (int)(pos[0] - x_min - 1 );
@@ -249,39 +285,53 @@ namespace UnityStandardAssets.Vehicles.Car
 		}
 		/*public bool ObstacleFree(Vector3 nearest, Vector3 pos)
         {
-			float xDist = pos[0] - nearest[0];
-			float zDist = pos[2] - nearest[2];
-			float xAng= 1;
-			float zAng = 1; 
-			if(zDist != 0) {
-				xAng = xDist/Mathf.Abs(zDist);
-			}
-			if(xDist != 0) {
-				zAng = zDist/Mathf.Abs(xDist);
-			}
-			float zSign, xSign = 0;
-			if(xAng < 0) {
-				xSign = -1;
-			} else {
-				xSign = 1;
-			}
-			if(zAng < 0) {
-				zSign = -1;
-			} else {
-				zSign = 1;
-			}
-			if(Mathf.Abs(zAng) < Mathf.Abs(xAng)) {
-				xAng = 1*xSign;
-			} else {
-				zAng = 1*zSign;
-			}
-			bool obstacleFree = true;
-			if(zDist < 0) {
-				zAng= -1;
-			} else {
-				zAng = 1;
-			}
-			int length = (int)Mathf.Max(Mathf.Abs(zDist), Mathf.Abs(xDist));
+            float xDist = pos[0] - nearest[0];
+            float zDist = pos[2] - nearest[2];
+            float xAng = 1;
+            float zAng = 1;
+            if (zDist != 0)
+            {
+                xAng = xDist / Mathf.Abs(zDist);
+            }
+            if (xDist != 0)
+            {
+                zAng = zDist / Mathf.Abs(xDist);
+            }
+            float zSign, xSign = 0;
+            if (xAng < 0)
+            {
+                xSign = -1;
+            }
+            else
+            {
+                xSign = 1;
+            }
+            if (zAng < 0)
+            {
+                zSign = -1;
+            }
+            else
+            {
+                zSign = 1;
+            }
+            if (Mathf.Abs(zAng) < Mathf.Abs(xAng))
+            {
+                xAng = 1 * xSign;
+            }
+            else
+            {
+                zAng = 1 * zSign;
+            }
+            bool obstacleFree = true;
+            if (zDist < 0)
+            {
+                zAng = -1;
+            }
+            else
+            {
+                zAng = 1;
+            }
+            int length = (int)Mathf.Max(Mathf.Abs(zDist), Mathf.Abs(xDist));
 
 			for(int i = 0; i < length; i++) {
 				int xCord = (int)(nearest[0] - x_min - 1 + xAng*i);
@@ -312,26 +362,28 @@ namespace UnityStandardAssets.Vehicles.Car
 			return x_nearest;
 		}
 
-		private List<Node2> NearRecursive(Node2 node, Node2 x_new, List<Node2> near, float minDistance)
-		{
-			Vector3 pos = x_new.pos;
-			float xDist = pos[0] - node.pos[0];
-			float zDist = pos[2] - node.pos[2];
-			float distance = Mathf.Sqrt(Mathf.Pow(xDist,2) + Mathf.Pow(zDist, 2));
+        private List<Node2> NearRecursive(Node2 node, Node2 x_new, List<Node2> near, float minDistance)
+        {
+            Vector3 pos = x_new.pos;
+            float xDist = pos[0] - node.pos[0];
+            float zDist = pos[2] - node.pos[2];
+            float distance = Mathf.Sqrt(Mathf.Pow(xDist, 2) + Mathf.Pow(zDist, 2));
 
-			if((distance < minDistance) && (x_new != node) && (x_new.parent != node)) {
-				near.Add(node);
-			}
-			foreach (Node2 childNode in node.children) {
-				near = NearRecursive(childNode, x_new, near, minDistance);
-			} 
-			return near;
-		}
-		public float nfmod(float a,float b)
-		{
-			return a - b * Mathf.Floor(a / b);
-		}
-		private Node2 Steer(Node2 nearest, Vector3 pos, float distThreshold, int step)
+            if ((distance < minDistance) && (x_new != node) && (x_new.parent != node))
+            {
+                near.Add(node);
+            }
+            foreach (Node2 childNode in node.children)
+            {
+                near = NearRecursive(childNode, x_new, near, minDistance);
+            }
+            return near;
+        }
+        public float nfmod(float a, float b)
+        {
+            return a - b * Mathf.Floor(a / b);
+        }
+        private Node2 Steer(Node2 nearest, Vector3 pos, float distThreshold, int step)
         {
 			float L = 3.0f;
 			float Accel = 1f;
@@ -355,86 +407,124 @@ namespace UnityStandardAssets.Vehicles.Car
 					return new Node2(null, newPos, cost, v, theta);
 				}
 
-				float vectorAngle = Mathf.Atan(zDist / xDist);
-				//UnityEngine.Debug.Log("Vector angle before " + vectorAngle);
+                float vectorAngle = Mathf.Atan(zDist / xDist);
+                //UnityEngine.Debug.Log("Vector angle before " + vectorAngle);
                 if (
                     (xDist < 0 && zDist > 0 && vectorAngle < 0) // if car_next lies in the second quadrant
                     || (xDist < 0 && vectorAngle == 0) // if car_next lies on the x axis and points to the left
                     || (xDist < 0 && zDist < 0) // if car_next lies in the third quadrant
-                ) {
+                )
+                {
                     vectorAngle += Mathf.PI;
                 }
                 else if (xDist > 0 && zDist < 0)// if car_next lies in the fourth quadrant
                 {
                     vectorAngle += 2 * Mathf.PI;
                 }
-				//UnityEngine.Debug.Log("Vector angle after " + vectorAngle);
-				float beta = 0;
-				if (vectorAngle < Mathf.PI/2) {
-					//UnityEngine.Debug.Log("Vector in the first quadrant");
-					if(theta < Mathf.PI/2) {
-						//UnityEngine.Debug.Log("Theta in the first quadrant");
-						beta = vectorAngle - theta;
-					} else if(theta < Mathf.PI) {
-						//UnityEngine.Debug.Log("Theta in the second quadrant");
-						beta = vectorAngle - theta;
-					} else if(theta < 3*Mathf.PI/2) {
-						//UnityEngine.Debug.Log("Theta in the third quadrant");
-						beta = -vectorAngle;
-					} else if(theta < 2*Mathf.PI) {
-						//UnityEngine.Debug.Log("Theta in the fourth quadrant");
-						beta = 2*Mathf.PI+vectorAngle-theta;
-					}
-				} else if (vectorAngle < Mathf.PI) {
-					//UnityEngine.Debug.Log("Vector in the second quadrant");
-					if(theta < Mathf.PI/2) {
-						//UnityEngine.Debug.Log("Theta in the first quadrant");
-						beta =vectorAngle  - theta;
-					} else if(theta < Mathf.PI) {
-						//UnityEngine.Debug.Log("Theta in the second quadrant");
-						beta = vectorAngle - theta;
-					} else if(theta < 3*Mathf.PI/2) {
-						//UnityEngine.Debug.Log("Theta in the third quadrant");
-						beta = vectorAngle - theta;
-					} else if(theta < 2*Mathf.PI) {
-						//UnityEngine.Debug.Log("Theta in the fourth quadrant");
-						beta = -vectorAngle;
-					}
-				} else if (vectorAngle < 3*Mathf.PI/2) {
-					//UnityEngine.Debug.Log("Vector in the third quadrant");
-					if(theta < Mathf.PI/2) {
-						//UnityEngine.Debug.Log("Theta in the first quadrant");
-						beta = vectorAngle;
-					} else if(theta < Mathf.PI) {
-						//UnityEngine.Debug.Log("Theta in the second quadrant");
-						beta = vectorAngle - theta;
-					} else if(theta < 3*Mathf.PI/2) {
-						//UnityEngine.Debug.Log("Theta in the third quadrant");
-						beta = vectorAngle - theta;
-					} else if(theta < 2*Mathf.PI) {
-						//UnityEngine.Debug.Log("Theta in the fourth quadrant");
-						beta = vectorAngle - theta;
-					}
-				} else if (vectorAngle < 2*Mathf.PI) {
-					//UnityEngine.Debug.Log("Vector in the fourth quadrant");
-					if(theta < Mathf.PI/2) {
-						//UnityEngine.Debug.Log("Theta in the first quadrant");
-						beta = -2*Mathf.PI - vectorAngle - theta;
-					} else if(theta < Mathf.PI) {
-						//UnityEngine.Debug.Log("Theta in the second quadrant");
-						beta = -(Mathf.Sign(vectorAngle - Mathf.PI - theta));
-					} else if(theta < 3*Mathf.PI/2) {
-						//UnityEngine.Debug.Log("Theta in the third quadrant");
-						beta = vectorAngle - theta;
-					} else if(theta < 2*Mathf.PI) {
-						//UnityEngine.Debug.Log("Theta in the fourth quadrant");
-						beta = vectorAngle - theta;
-					}
-				} else {
-					//UnityEngine.Debug.Log("None of the above. Should not happen.");
-					beta = vectorAngle - theta;
-				}
-				//UnityEngine.Debug.Log("Beta " + beta);
+                //UnityEngine.Debug.Log("Vector angle after " + vectorAngle);
+                float beta = 0;
+                if (vectorAngle < Mathf.PI / 2)
+                {
+                    //UnityEngine.Debug.Log("Vector in the first quadrant");
+                    if (theta < Mathf.PI / 2)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the first quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                    else if (theta < Mathf.PI)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the second quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                    else if (theta < 3 * Mathf.PI / 2)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the third quadrant");
+                        beta = -vectorAngle;
+                    }
+                    else if (theta < 2 * Mathf.PI)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the fourth quadrant");
+                        beta = 2 * Mathf.PI + vectorAngle - theta;
+                    }
+                }
+                else if (vectorAngle < Mathf.PI)
+                {
+                    //UnityEngine.Debug.Log("Vector in the second quadrant");
+                    if (theta < Mathf.PI / 2)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the first quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                    else if (theta < Mathf.PI)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the second quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                    else if (theta < 3 * Mathf.PI / 2)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the third quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                    else if (theta < 2 * Mathf.PI)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the fourth quadrant");
+                        beta = -vectorAngle;
+                    }
+                }
+                else if (vectorAngle < 3 * Mathf.PI / 2)
+                {
+                    //UnityEngine.Debug.Log("Vector in the third quadrant");
+                    if (theta < Mathf.PI / 2)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the first quadrant");
+                        beta = vectorAngle;
+                    }
+                    else if (theta < Mathf.PI)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the second quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                    else if (theta < 3 * Mathf.PI / 2)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the third quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                    else if (theta < 2 * Mathf.PI)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the fourth quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                }
+                else if (vectorAngle < 2 * Mathf.PI)
+                {
+                    //UnityEngine.Debug.Log("Vector in the fourth quadrant");
+                    if (theta < Mathf.PI / 2)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the first quadrant");
+                        beta = -2 * Mathf.PI - vectorAngle - theta;
+                    }
+                    else if (theta < Mathf.PI)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the second quadrant");
+                        beta = -(Mathf.Sign(vectorAngle - Mathf.PI - theta));
+                    }
+                    else if (theta < 3 * Mathf.PI / 2)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the third quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                    else if (theta < 2 * Mathf.PI)
+                    {
+                        //UnityEngine.Debug.Log("Theta in the fourth quadrant");
+                        beta = vectorAngle - theta;
+                    }
+                }
+                else
+                {
+                    //UnityEngine.Debug.Log("None of the above. Should not happen.");
+                    beta = vectorAngle - theta;
+                }
+                //UnityEngine.Debug.Log("Beta " + beta);
 
 				//vectorAngle += theta;
 				if(beta < -maxSteerAngle) {
@@ -467,14 +557,25 @@ namespace UnityStandardAssets.Vehicles.Car
 				//UnityEngine.Debug.Log("Cost " + cost + " newPos: " + newPos + " new Distance:" + updateDistance);
 				//UnityEngine.Debug.Log("New Pos: " + newPos + " Velocity: " + v + " Accel: " + Accel);
 
-			}
-			Node2 newNode = new Node2(null, newPos, cost, v, theta);
+                //UnityEngine.Debug.Log("xDist: " + xDist + " zDist: " + zDist + " Psi: "+ beta + " tanPsi " + tanPsi);
+                Vector3 updatePos = new Vector3(newPos[0] + v * Mathf.Cos(theta), 0, newPos[2] + v * Mathf.Sin(theta));
+                //if(i%2 == 0) { UnityEngine.Debug.DrawLine(newPos, updatePos, Color.blue, 100f); }
+                //else {UnityEngine.Debug.DrawLine(newPos, updatePos, Color.black, 1000f); }
+                if (!ObstacleFree(newPos, updatePos))
+                {
+                    return null;
+                }
+                newPos = updatePos;
+                //UnityEngine.Debug.Log("New Pos: " + newPos + " Velocity: " + v + " Accel: " + Accel);
+
+            }
+            Node2 newNode = new Node2(null, newPos, cost, v, theta);
             return newNode;
         }
         public List<Node2> Run()
         {
-			int iter = 0;
-			bool notConverged = true;
+            int iter = 0;
+            bool notConverged = true;
 
 			while(notConverged) {
 				iter++;
@@ -586,9 +687,9 @@ namespace UnityStandardAssets.Vehicles.Car
 			
 			//List<Vector3> myPath = testPath();
 
-			List<Vector3> myPath = new List<Vector3>();
-			List<Node2> nodePath = new List<Node2>();
-
+            //List<Vector3> myPath = testPath();
+            List<Vector3> myPath = new List<Vector3>();
+            List<Node2> nodePath = new List<Node2>();
 			Node2 node = x_best;
 			myPath.Add(node.pos);
 			nodePath.Add(node);
@@ -608,5 +709,5 @@ namespace UnityStandardAssets.Vehicles.Car
             }
 			return nodePath;
         }
-	}
+    }
 }
