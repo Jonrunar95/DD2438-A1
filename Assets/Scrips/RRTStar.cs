@@ -69,9 +69,9 @@ namespace UnityStandardAssets.Vehicles.Car
 		public float maxSteerAngle;
 		private const float max_steer_angle = (25f / 360f) * 2f * Mathf.PI;
 		public float t = 0.02f;
-		public int maxIter = 10000;
+		public int maxIter = 40000;
 		public int stepSize;
-		public int nearRadius = 25;
+		public int nearRadius = 30;
 		int nearCount = 0;
 		public List<Node2> near;
         public RRTS(GameObject terrain_manager_game_object, float m_maxSpeed, float m_MaximumSteerAngle)
@@ -152,76 +152,24 @@ namespace UnityStandardAssets.Vehicles.Car
 		}
         public Vector3 SampleFree(int iter)
         {
-			/*if(iter == 1) {
-				Vector3 newPos = new Vector3(195, 0, 137);
-				return newPos;
-			}
-			else if(iter  == 2) {
-				Vector3 newPos = new Vector3(175, 0, 157);
-				return newPos;
-			} 
-			else if(iter == 3) {
-				Vector3 newPos = new Vector3(165, 0, 167);
-				return newPos;
-			} else if(iter  == 4) {
-				Vector3 newPos = new Vector3(155, 0, 127);
-				return newPos;
-			}  else if(iter == 5) {
-				Vector3 newPos = new Vector3(125, 0, 117);
-				return newPos;
-			} else if(iter == 6) {
-				Vector3 newPos = new Vector3(175, 0, 117);
-				return newPos;
-			} else if(iter == 7) {
-				Vector3 newPos = new Vector3(185, 0, 117);
-				return newPos;
-			} else if(iter == 8) {
-				Vector3 newPos = new Vector3(195, 0, 117);
-				return newPos;
-			} else if(iter == 9) {
-				Vector3 newPos = new Vector3(110, 0, 135);
-				return newPos;
-			}*/
-			if(iter % (maxIter/10) == 0) {
+			if(iter % (maxIter/100) == 0) {
 				
 				return goal_pos;
 			}
 			else {
 				int xStart, xStop, zStart, zStop;
-				if(iter < 10){
-					xStart = (int)Math.Max(start_pos[0] -x_min - 20, 0);
-					xStop = (int)Math.Min(start_pos[0] -x_min + 20, (x_max - x_min-1));
-					zStart = (int)Math.Max(start_pos[2] - z_min - 20, 0);
-					zStop = (int)Math.Min(start_pos[2] - z_min + 20, (int)(z_max - z_min-1));
-				} else if(iter < 20) {
-					xStart = (int)Math.Max(start_pos[0] -x_min - 40, 0);
-					xStop = (int)Math.Min(start_pos[0] -x_min + 40, (x_max - x_min-1));
-					zStart = (int)Math.Max(start_pos[2] - z_min - 40, 0);
-					zStop = (int)Math.Min(start_pos[2] - z_min + 40, (int)(z_max - z_min-1));
-				} else if(iter < 30) {
-					xStart = (int)Math.Max(start_pos[0] -x_min - 60, 0);
-					xStop = (int)Math.Min(start_pos[0] -x_min + 60, (x_max - x_min-1));
-					zStart = (int)Math.Max(start_pos[2] - z_min - 60, 0);
-					zStop = (int)Math.Min(start_pos[2] - z_min + 60, (int)(z_max - z_min-1));
-				} else if(iter < 40) {
-					xStart = (int)Math.Max(start_pos[0] -x_min - 80, 0);
-					xStop = (int)Math.Min(start_pos[0] -x_min + 80, (x_max - x_min-1));
-					zStart = (int)Math.Max(start_pos[2] - z_min - 80, 0);
-					zStop = (int)Math.Min(start_pos[2] - z_min + 80, (int)(z_max - z_min-1));
+				if(iter % maxIter%200 == 0) {
+					xStart = (int)Math.Max(goal_pos[0] -x_min - 40, 0);
+					xStop = (int)Math.Min(goal_pos[0] -x_min + 40, (x_max - x_min-1));
+					zStart = (int)Math.Max(goal_pos[2] - z_min - 40, 0);
+					zStop = (int)Math.Min(goal_pos[2] - z_min + 40, (int)(z_max - z_min-1));
+					//UnityEngine.Debug.Log("SAMPLING NEAR GOAL");
 				} else {
-					if(iter % 50 == 0) {
-						xStart = (int)Math.Max(goal_pos[0] -x_min - 40, 0);
-						xStop = (int)Math.Min(goal_pos[0] -x_min + 40, (x_max - x_min-1));
-						zStart = (int)Math.Max(goal_pos[2] - z_min - 40, 0);
-						zStop = (int)Math.Min(goal_pos[2] - z_min + 40, (int)(z_max - z_min-1));
-						//UnityEngine.Debug.Log("SAMPLING NEAR GOAL");
-					} else {
 						xStart = 0;
 						xStop = (int)(x_max - x_min-1);
 						zStart = 0;
 						zStop = (int)(z_max - z_min-1);
 					}
-				}
 				System.Random r = new System.Random();
 				bool notDone = true;
 				int xInt = 0;
@@ -331,6 +279,9 @@ namespace UnityStandardAssets.Vehicles.Car
 		}
         private void NearRecursive(Node2 node, Node2 x_new, float minDistance)
         {
+			if(nearCount > 20) {
+				return;
+			}
             Vector3 pos = x_new.pos;
             float xDist = pos[0] - node.pos[0];
             float zDist = pos[2] - node.pos[2];
@@ -497,19 +448,19 @@ namespace UnityStandardAssets.Vehicles.Car
 				} else if(beta < Mathf.PI/2 && beta > - Mathf.PI/2) {
 					Accel = 0.5f;
 				} else if(beta < 3*Mathf.PI/4 && beta > - 3*Mathf.PI/4) {
-					if(v > 20) {
-						v = 20;
+					if(v > 30) {
+						v = 30;
 					}
 					Accel = 0f;
 				} else if(beta < Mathf.PI && beta > - Mathf.PI) {
 					Accel = 0f;
-					if(v > 20) {
-						v = 20;
+					if(v > 30) {
+						v = 30;
 					}
 				} else if(beta < 2*Mathf.PI && beta > - 2*Mathf.PI) {
 					Accel = 0f;
-					if(v > 20) {
-						v = 20;
+					if(v > 30) {
+						v = 30;
 					}
 					//UnityEngine.Debug.Log("beta more than PI");
 				}
@@ -579,13 +530,14 @@ namespace UnityStandardAssets.Vehicles.Car
 					//x_nearest.addChild(x_new);
 					near = new List<Node2>();
 					NearRecursive(graph.root, x_new, nearRadius);
-					//UnityEngine.Debug.Log("Near Count: " + near.Count + " vs " + nearCount);
+					UnityEngine.Debug.Log("Near Count: " + near.Count + " vs " + nearCount);
 					nearCount = 0;
 					//UnityEngine.Debug.Log("Number of near = " + near.Count);
 					Node2 newParent = x_nearest;
 					Node2 newChild = x_new;
 					float newMinDistance = x_new.cost;
 					//UnityEngine.Debug.Log("Number of near = " + near.Count);
+					//List<Node2> nneeaarr = new List<Node2>();
 					foreach (Node2 nearNode in near) {
 						//UnityEngine.Debug.Log("SteerNear");
 						if(nearNode == x_new || nearNode == x_nearest) {

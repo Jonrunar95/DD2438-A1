@@ -307,7 +307,7 @@ namespace UnityStandardAssets.Vehicles.Car
         {
 			iter++;
 			sinceLastChange += m_Car.CurrentSpeed*t;
-			if(nextPoint && sinceLastChange > 6) {
+			if(nextPoint) {
 				next++;
 				nextPoint = false;
 			}
@@ -319,8 +319,8 @@ namespace UnityStandardAssets.Vehicles.Car
 				UnityEngine.Debug.Log(next + "/" + my_path.Count);
 				float[] results = Steer(car_pos, my_path[next].pos);
 				float steer = -results[1]/max_steer_angle;
-				//UnityEngine.Debug.Log("Beta: " + steer+ " Accel: " + results[0] + " Current steer angle: " + m_Car.CurrentSteerAngle + " v " + m_Car.CurrentSpeed);
-				m_Car.Move(steer, results[0], 0f, 0f);
+				UnityEngine.Debug.Log(" Steer: " + steer + " velocity: " + m_Car.CurrentSpeed + " accel: " + results[0] + " Brake: " + results[2]);
+				m_Car.Move(steer, results[0], 0f, results[2]);
 			}			
         }
 
@@ -329,6 +329,7 @@ namespace UnityStandardAssets.Vehicles.Car
 			t = Time.fixedDeltaTime;
 			float L = 3.0f;
 			float Accel = 1f;
+			float footbreak = 0f;
 			
 			theta = nfmod(-m_Car.transform.eulerAngles.y * (Mathf.PI/180.0f) + Mathf.PI / 2.0f, 2*Mathf.PI);
 			float v = m_Car.CurrentSpeed;
@@ -425,6 +426,135 @@ namespace UnityStandardAssets.Vehicles.Car
 				//UnityEngine.Debug.Log("None of the above. Should not happen.");
 				beta = vectorAngle - theta;
 			}
+			UnityEngine.Debug.Log("Distance to next point: " + newDistance);
+			if(next < my_path.Count-1) {
+				if(newDistance < 30 && v > 30) {
+					float xNext = pos[0] - my_path[next+1].pos[0];
+					float zNext = pos[2] - my_path[next+1].pos[2];
+					float nextAngle = Mathf.Atan(zNext/xNext);
+					float nextBeta = 0;
+					if (
+						(xNext < 0 && zNext > 0 && nextAngle < 0) // if car_next lies in the second quadrant
+						|| (xNext < 0 && nextAngle == 0) // if car_next lies on the x axis and points to the left
+						|| (xNext < 0 && zNext < 0) // if car_next lies in the third quadrant
+					) {
+						nextAngle += Mathf.PI;
+					}
+					else if (xNext > 0 && zNext < 0)// if car_next lies in the fourth quadrant
+					{
+						nextAngle += 2 * Mathf.PI;
+					}
+
+					//nextBeta = theta - nfmod(nextBeta, 2*Mathf.PI);
+					if (nextAngle < Mathf.PI/2) {
+						//UnityEngine.Debug.Log("Vector in the first quadrant");
+						if(theta < Mathf.PI/2) {
+							//UnityEngine.Debug.Log("Theta in the first quadrant");
+							nextBeta = nextAngle - theta;
+						} else if(theta < Mathf.PI) {
+							//UnityEngine.Debug.Log("Theta in the second quadrant");
+							nextBeta = nextAngle - theta;
+						} else if(theta < 3*Mathf.PI/2) {
+							//UnityEngine.Debug.Log("Theta in the third quadrant");
+							nextBeta = -nextAngle;
+						} else if(theta < 2*Mathf.PI) {
+							//UnityEngine.Debug.Log("Theta in the fourth quadrant");
+							nextBeta = 2*Mathf.PI+nextAngle-theta;
+						}
+					} else if (nextAngle < Mathf.PI) {
+						//UnityEngine.Debug.Log("Vector in the second quadrant");
+						if(theta < Mathf.PI/2) {
+							//UnityEngine.Debug.Log("Theta in the first quadrant");
+							nextBeta =nextAngle  - theta;
+						} else if(theta < Mathf.PI) {
+							//UnityEngine.Debug.Log("Theta in the second quadrant");
+							nextBeta = nextAngle - theta;
+						} else if(theta < 3*Mathf.PI/2) {
+							//UnityEngine.Debug.Log("Theta in the third quadrant");
+							nextBeta = nextAngle - theta;
+						} else if(theta < 2*Mathf.PI) {
+							//UnityEngine.Debug.Log("Theta in the fourth quadrant");
+							nextBeta = -nextAngle;
+						}
+					} else if (nextAngle < 3*Mathf.PI/2) {
+						//UnityEngine.Debug.Log("Vector in the third quadrant");
+						if(theta < Mathf.PI/2) {
+							//UnityEngine.Debug.Log("Theta in the first quadrant");
+							nextBeta = nextAngle;
+						} else if(theta < Mathf.PI) {
+							//UnityEngine.Debug.Log("Theta in the second quadrant");
+							nextBeta = nextAngle - theta;
+						} else if(theta < 3*Mathf.PI/2) {
+							//UnityEngine.Debug.Log("Theta in the third quadrant");
+							nextBeta = nextAngle - theta;
+						} else if(theta < 2*Mathf.PI) {
+							//UnityEngine.Debug.Log("Theta in the fourth quadrant");
+							nextBeta = nextAngle - theta;
+						}
+					} else if (nextAngle < 2*Mathf.PI) {
+						//UnityEngine.Debug.Log("Vector in the fourth quadrant");
+						if(theta < Mathf.PI/2) {
+							//UnityEngine.Debug.Log("Theta in the first quadrant");
+							nextBeta = -2*Mathf.PI - nextAngle - theta;
+						} else if(theta < Mathf.PI) {
+							//UnityEngine.Debug.Log("Theta in the second quadrant");
+							nextBeta = -(Mathf.Sign(nextAngle - Mathf.PI - theta));
+						} else if(theta < 3*Mathf.PI/2) {
+							//UnityEngine.Debug.Log("Theta in the third quadrant");
+							nextBeta = nextAngle - theta;
+						} else if(theta < 2*Mathf.PI) {
+							//UnityEngine.Debug.Log("Theta in the fourth quadrant");
+							nextBeta = nextAngle - theta;
+						}
+					} else {
+						//UnityEngine.Debug.Log("None of the above. Should not happen.");
+						nextBeta = nextAngle - theta;
+					}
+					nextBeta = nfmod(nextBeta, 2*Mathf.PI);
+					UnityEngine.Debug.Log("Theta: " + theta + " nextBeta: " + nextBeta);
+					if(nextBeta < Mathf.PI/4 && nextBeta > - Mathf.PI/4) {
+						Accel = 1f;
+						UnityEngine.Debug.Log("Next beta less than PI/4");
+					} else if(nextBeta < Mathf.PI/2 && nextBeta > - Mathf.PI/2) {
+						if(newDistance > 10) {
+							Accel = 0;
+						} else {
+							Accel = 0;
+							footbreak = 0.5f;
+						}
+						UnityEngine.Debug.Log("Next beta less than PI/2");
+					} else if(nextBeta < 3*Mathf.PI/4 && nextBeta > - 3*Mathf.PI/4) {
+						if(newDistance > 10) {
+							Accel = 0;
+						} else {
+							Accel = 0;
+							footbreak = 1f;
+						}
+						UnityEngine.Debug.Log("Next beta less than 3*PI/2");
+						
+					} else if(nextBeta < Mathf.PI && nextBeta > - Mathf.PI) {
+						if(newDistance > 10) {
+							Accel = 0;
+							footbreak = 0.5f;
+						} else {
+							Accel = 0;
+							footbreak = 1f;
+						}
+						UnityEngine.Debug.Log("Next beta less than PI");
+					} else if(nextBeta < 2*Mathf.PI && nextBeta > - 2*Mathf.PI) {
+						if(newDistance > 20) {
+							Accel = 0;
+							footbreak = 0.5f;
+						} else {
+							Accel = 0;
+							footbreak = 1f;
+						}
+						UnityEngine.Debug.Log("Next beta more than PI");
+					}
+					UnityEngine.Debug.Log("Next angle: " + nextAngle + " Next beta: " + nextBeta + " Theta: " + theta);
+				}
+			}
+
 			//UnityEngine.Debug.Log("Beta " + beta);
 
 			//vectorAngle += theta;
@@ -433,16 +563,7 @@ namespace UnityStandardAssets.Vehicles.Car
 			} else if(beta > max_steer_angle) {
 				beta = max_steer_angle;
 			}
-			//UnityEngine.Debug.Log("Final beta" + beta);
-			//UnityEngine.Debug.Log("Old theta "+ theta);
-			float tanPsi = Mathf.Tan(beta);
-			v += Accel;
-			if(v > 20) {
-				Accel = 0;
-			}
-			theta += v*t/L*tanPsi;
-			theta = nfmod(theta, 2*Mathf.PI);
-			float[] results = {Accel, beta};
+			float[] results = {Accel, beta, footbreak};
 			return results;
         }
 		public float nfmod(float a,float b)
