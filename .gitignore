@@ -1,0 +1,4 @@
+*.json
+*.meta
+Library/
+Temp/
