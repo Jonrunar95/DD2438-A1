@@ -22,7 +22,7 @@ public class GameManager : MonoBehaviour {
        
         start_time = Time.time;
 
-        race_car.transform.position = terrain_manager.myInfo.start_pos + 2f* Vector3.up;
+        race_car.transform.position = terrain_manager.myInfo.start_pos + 3f* Vector3.up;
         race_car.transform.rotation = Quaternion.identity;
 
 
