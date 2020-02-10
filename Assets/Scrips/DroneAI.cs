@@ -39,11 +39,8 @@ namespace UnityStandardAssets.Vehicles.Car
 
             drone_pos = start_pos;
 
-            // get test path for terrain C
-            RRTS rrt = new RRTS(terrain_manager_game_object, 200, 25);
-            //my_path = rrt.testPath();
+            RRTSD rrt = new RRTSD(terrain_manager_game_object);
             my_path = rrt.Run();
-            my_path.Add(new Node2(null, goal_pos, 0, 0, 0));
 
             // initialize the starting position for the model
             x = start_pos[0];
@@ -75,7 +72,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             // if the car is within a certain distance of the next node, increase the next index by one
             // the distance is squared (e.g. 25 = 5m distance from car to point)
-            if (Mathf.Pow(drone_pos[0] - my_path[next].pos[0], 2) + Mathf.Pow(drone_pos[2] - my_path[next].pos[2], 2) < 4)
+            if (Mathf.Pow(drone_pos[0] - my_path[next].pos[0], 2) + Mathf.Pow(drone_pos[2] - my_path[next].pos[2], 2) < 1)
             {
                 if (next < my_path.Count - 1)
                 {
@@ -101,7 +98,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             double[] result = calculateDesiredConfiguration();
 
-            UnityEngine.Debug.DrawLine(drone_pos, my_path[next].pos, Color.white, t);
+            //UnityEngine.Debug.DrawLine(drone_pos, my_path[next].pos, Color.white, t);
             //UnityEngine.Debug.Log(result[0] + " | " + result[1]);
 
             m_Drone.Move((float)result[0], (float)result[1]);
