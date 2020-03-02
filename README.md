@@ -1,1 +1,2 @@
-# DD2438-A1
+# DD2438-A1. Path planning and execution
+In this project the task is to plan and execute a path from start to goal, using the provided car and drone models in Unity3d. This project uses RRT*, an extension of the RRT (Rapidly Exploring Random-Tree) algorithm to do path planning. A kinematic car model was used to execute the path for the car and a kinematic point model for the drone.
